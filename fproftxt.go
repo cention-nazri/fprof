@@ -11,7 +11,6 @@ import (
 	"strings"
 )
 
-const LineGrowth = 10
 const reportDir = "fproftxt"
 
 type LineMetric string
