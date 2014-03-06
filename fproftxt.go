@@ -79,17 +79,11 @@ func forEachLineInFile(filename string, sp fileLineHandler) {
 }
 
 func getLineCount(filename string) int {
-	file, err := os.Open(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
 	lineCount := 0
-	for scanner.Scan() {
-		lineCount++
+	increaseLineCount := func(line int, text string) {
+		lineCount++;
 	}
+	forEachLineInFile(filename, increaseLineCount)
 	return lineCount
 }
 
