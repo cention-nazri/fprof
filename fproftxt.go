@@ -81,7 +81,7 @@ func forEachLineInFile(filename string, sp fileLineHandler) {
 func getLineCount(filename string) int {
 	lineCount := 0
 	increaseLineCount := func(line int, text string) {
-		lineCount++;
+		lineCount++
 	}
 	forEachLineInFile(filename, increaseLineCount)
 	return lineCount
