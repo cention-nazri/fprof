@@ -47,3 +47,6 @@ func (reporter *TextReporter) PopulateProfile(profileFor report.LineMetricForFil
 	profileFor[filename][line-1] = timings
 	reporter.PrintMetrics(report.FilesDir, timings, filenameAndLine)
 }
+
+func (reporter *TextReporter) PrintFooter() {
+}

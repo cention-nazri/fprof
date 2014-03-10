@@ -13,22 +13,33 @@ import (
 import "fprof/helper"
 import "fprof/report"
 import "fprof/report/text"
+import "fprof/report/html"
 
 var reportDir = "fproftxt"
+var reportType = "html"
 
 func main() {
 	var pReportDir = flag.String("o", reportDir, "Directory to generate profile reports")
+	var pReportType = flag.String("t", reportType, "Report type txt or html (default)")
 	flag.Parse()
 
 	if *pReportDir != reportDir {
 		reportDir = *pReportDir
+	}
+	if *pReportType != reportType {
+		reportType = *pReportType
 	}
 
 	profileFor := make(report.LineMetricForFiles)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	header := ""
-	reporter := text.New(reportDir)
+	var reporter report.Reporter
+	if reportType == "txt" {
+		reporter = text.New(reportDir)
+	} else {
+		reporter = html.New(reportDir)
+	}
 
 	if scanner.Scan() {
 		header = scanner.Text()
@@ -41,6 +52,7 @@ func main() {
 		log.Fatal("reading standard input:", err)
 	}
 	generateMetricFiles(profileFor)
+	reporter.PrintFooter();
 }
 
 func generateMetricFiles(profileFor report.LineMetricForFiles) {
