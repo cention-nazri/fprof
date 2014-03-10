@@ -1,8 +1,8 @@
 package main
 
 import (
-	"flag"
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -12,13 +12,13 @@ import (
 	"strings"
 )
 
+const filesDir = "files"
+
 var reportDir = "fproftxt"
 
 type LineMetric string
 type LineMetricForFiles map[string][]LineMetric
 type fileLineHandler func(line int, text string)
-
-var filesDir = reportDir + "/files"
 
 func main() {
 	var pReportDir = flag.String("o", reportDir, "Directory to generate profile reports")
@@ -26,7 +26,6 @@ func main() {
 
 	if *pReportDir != reportDir {
 		reportDir = *pReportDir
-		filesDir = reportDir + "/files"
 	}
 
 	profileFor := make(LineMetricForFiles)
@@ -74,8 +73,9 @@ func generateMetricFiles(profileFor LineMetricForFiles) {
 		}
 	}
 
+	filePrefix := reportDir + "/" + filesDir
 	for filename, lineMetrics := range profileFor {
-		profileFilename := filesDir + "/" + filename
+		profileFilename := filePrefix + filename
 		createDir(path.Dir(profileFilename))
 		file, err := os.Create(profileFilename)
 		if err != nil {
@@ -149,5 +149,5 @@ func populateProfile(profileFile io.Writer, profileFor LineMetricForFiles, recor
 	//fmt.Println("line count for",filename,"is", cap(lineMetrics))
 	//fmt.Println("line is", line)
 	profileFor[filename][line-1] = timings
-	fmt.Fprintf(profileFile, "%v files/%v\n", timings, filenameAndLine)
+	fmt.Fprintf(profileFile, "%v %v%v\n", timings, filesDir, filenameAndLine)
 }
