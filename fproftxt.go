@@ -17,22 +17,26 @@ type LineMetric string
 type LineMetricForFiles map[string][]LineMetric
 type fileLineHandler func(line int, text string)
 
+var filesDir = reportDir + "/files"
+
 func main() {
 	profileFor := make(LineMetricForFiles)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	header := ""
+	createDir(reportDir)
+	profileFile := createFile(reportDir + "/profile.txt")
+	defer (profileFile).(*os.File).Close()
 	if scanner.Scan() {
 		header = scanner.Text()
-		fmt.Println(header)
+		fmt.Fprintln(profileFile, header)
 	}
 	for scanner.Scan() {
-		populateProfile(profileFor, scanner.Text())
+		populateProfile(profileFile, profileFor, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatal("reading standard input:", err)
 	}
-
 	generateMetricFiles(profileFor)
 }
 
@@ -41,6 +45,14 @@ func createDir(dir string) {
 	if err != nil {
 		log.Fatal(dir, " ", err)
 	}
+}
+
+func createFile(path string) io.Writer {
+	file, err := os.Create(path)
+	if err != nil {
+		log.Fatal(file, ":", err)
+	}
+	return file
 }
 
 func generateMetricFiles(profileFor LineMetricForFiles) {
@@ -54,11 +66,11 @@ func generateMetricFiles(profileFor LineMetricForFiles) {
 	}
 
 	for filename, lineMetrics := range profileFor {
-		reportFilename := reportDir + "/" + filename
-		createDir(path.Dir(reportFilename))
-		file, err := os.Create(reportFilename)
+		profileFilename := filesDir + "/" + filename
+		createDir(path.Dir(profileFilename))
+		file, err := os.Create(profileFilename)
 		if err != nil {
-			log.Fatal(reportFilename, ":", err)
+			log.Fatal(profileFilename, ":", err)
 		}
 		defer file.Close()
 
@@ -111,7 +123,7 @@ func getFilenameAndLineNumber(filenameAndLine string) (string, int) {
 	return filename, line
 }
 
-func populateProfile(profileFor LineMetricForFiles, record string) {
+func populateProfile(profileFile io.Writer, profileFor LineMetricForFiles, record string) {
 	timings, filenameAndLine := getTimingsAndFilenameLineInfo(record)
 	filename, line := getFilenameAndLineNumber(filenameAndLine)
 
@@ -128,5 +140,5 @@ func populateProfile(profileFor LineMetricForFiles, record string) {
 	//fmt.Println("line count for",filename,"is", cap(lineMetrics))
 	//fmt.Println("line is", line)
 	profileFor[filename][line-1] = timings
-	fmt.Printf("%v %v%v\n", timings, reportDir, filenameAndLine)
+	fmt.Fprintf(profileFile, "%v %v%v\n", timings, filesDir, filenameAndLine)
 }
