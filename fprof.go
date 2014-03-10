@@ -12,6 +12,9 @@ import (
 	"strings"
 )
 
+import "fprof/helper"
+import "fprof/report/text"
+
 const filesDir = "files"
 
 var reportDir = "fproftxt"
@@ -19,6 +22,13 @@ var reportDir = "fproftxt"
 type LineMetric string
 type LineMetricForFiles map[string][]LineMetric
 type fileLineHandler func(line int, text string)
+
+type Report struct {
+	file io.Writer
+}
+type Reporter interface {
+	PrintHeader(profileFile io.Writer, header string)
+}
 
 func main() {
 	var pReportDir = flag.String("o", reportDir, "Directory to generate profile reports")
@@ -32,35 +42,19 @@ func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	header := ""
-	createDir(reportDir)
-	profileFile := createFile(reportDir + "/profile.txt")
-	defer (profileFile).(*os.File).Close()
+	reporter := text.New(reportDir)
+
 	if scanner.Scan() {
 		header = scanner.Text()
-		fmt.Fprintln(profileFile, header)
+		reporter.PrintHeader(header)
 	}
 	for scanner.Scan() {
-		populateProfile(profileFile, profileFor, scanner.Text())
+		populateProfile(reporter.ProfileFile, profileFor, scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
 		log.Fatal("reading standard input:", err)
 	}
 	generateMetricFiles(profileFor)
-}
-
-func createDir(dir string) {
-	err := os.MkdirAll(dir, os.ModeDir|os.ModePerm)
-	if err != nil {
-		log.Fatal(dir, " ", err)
-	}
-}
-
-func createFile(path string) io.Writer {
-	file, err := os.Create(path)
-	if err != nil {
-		log.Fatal(file, ":", err)
-	}
-	return file
 }
 
 func generateMetricFiles(profileFor LineMetricForFiles) {
@@ -76,7 +70,7 @@ func generateMetricFiles(profileFor LineMetricForFiles) {
 	filePrefix := reportDir + "/" + filesDir
 	for filename, lineMetrics := range profileFor {
 		profileFilename := filePrefix + filename
-		createDir(path.Dir(profileFilename))
+		helper.CreateDir(path.Dir(profileFilename))
 		file, err := os.Create(profileFilename)
 		if err != nil {
 			log.Fatal(profileFilename, ":", err)
