@@ -21,6 +21,11 @@ func main() {
 	profileFor := make(LineMetricForFiles)
 
 	scanner := bufio.NewScanner(os.Stdin)
+	header := ""
+	if scanner.Scan() {
+		header = scanner.Text()
+		fmt.Println(header)
+	}
 	for scanner.Scan() {
 		populateProfile(profileFor, scanner.Text())
 	}
@@ -43,7 +48,7 @@ func generateMetricFiles(profileFor LineMetricForFiles) {
 	lineMetricGenerator := func(file io.Writer, metrics []LineMetric) func(int, string) {
 		return func(line int, text string) {
 			metric := metrics[line-1]
-			fmt.Fprintf(file, "%34v %v\n", metric, text)
+			fmt.Fprintf(file, "%56v %v\n", metric, text)
 			lastLine = line
 		}
 	}
@@ -123,4 +128,5 @@ func populateProfile(profileFor LineMetricForFiles, record string) {
 	//fmt.Println("line count for",filename,"is", cap(lineMetrics))
 	//fmt.Println("line is", line)
 	profileFor[filename][line-1] = timings
+	fmt.Printf("%v %v%v\n", timings, reportDir, filenameAndLine)
 }
