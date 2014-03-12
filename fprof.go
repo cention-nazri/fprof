@@ -15,7 +15,7 @@ import "fprof/report"
 import "fprof/report/text"
 import "fprof/report/html"
 
-var reportDir = "fproftxt"
+var reportDir = "fprof"
 var reportType = "html"
 
 func main() {
