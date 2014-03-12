@@ -60,7 +60,10 @@ func generateMetricFiles(profileFor report.LineMetricForFiles) {
 	lineMetricGenerator := func(file io.Writer, metrics []report.LineMetric) func(int, string) {
 		return func(line int, text string) {
 			metric := metrics[line-1]
-			fmt.Fprintf(file, "%56v %v\n", metric, text)
+			/* The metric width must match the width set by
+			 * ferite_profile.c write_profile_line_entry()
+			 */
+			fmt.Fprintf(file, "%62v %v\n", metric, text)
 			lastLine = line
 		}
 	}
