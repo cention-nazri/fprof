@@ -16,7 +16,7 @@ import "fprof/report/text"
 import "fprof/report/html"
 
 var reportDir = "fprof"
-var reportType = "html"
+var reportType = "txt"
 
 func main() {
 	var pReportDir = flag.String("o", reportDir, "Directory to generate profile reports")
