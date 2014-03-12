@@ -43,7 +43,7 @@ func main() {
 
 	if scanner.Scan() {
 		header = scanner.Text()
-		reporter.PrintHeader(header)
+		reporter.Prolog(header)
 	}
 	for scanner.Scan() {
 		reporter.PopulateProfile(profileFor, scanner.Text())
@@ -52,7 +52,7 @@ func main() {
 		log.Fatal("reading standard input:", err)
 	}
 	generateMetricFiles(profileFor)
-	reporter.PrintFooter();
+	reporter.Epilog()
 }
 
 func generateMetricFiles(profileFor report.LineMetricForFiles) {

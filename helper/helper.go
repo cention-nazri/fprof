@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"io"
 	"log"
+	"os/exec"
 )
 
 type fileLineHandler func(line int, text string)
@@ -46,4 +47,13 @@ func GetLineCount(filename string) int {
 	}
 	ForEachLineInFile(filename, increaseLineCount)
 	return lineCount
+}
+
+func RunCommand(name string, arg ...string) error {
+	cmd := exec.Command(name, arg...)
+	err := cmd.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return cmd.Wait()
 }

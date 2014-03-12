@@ -20,12 +20,12 @@ func New(reportDir string) *TextReporter {
 	return &reporter
 }
 
-func (reporter *TextReporter) PrintHeader(header string) {
+func (reporter *TextReporter) Prolog(header string) {
 	fmt.Fprintln(reporter.ProfileFile, header)
 }
 
 func (reporter *TextReporter) PrintMetrics(filesDir string, timings report.LineMetric, filenameAndLine string) {
-	fmt.Fprintf(reporter.ProfileFile, "%v %v%v\n", timings, filesDir, filenameAndLine)
+	fmt.Fprintf(reporter.ProfileFile, "%v%v%v\n", timings, filesDir, filenameAndLine)
 }
 
 func (reporter *TextReporter) PopulateProfile(profileFor report.LineMetricForFiles, record string) {
@@ -48,5 +48,19 @@ func (reporter *TextReporter) PopulateProfile(profileFor report.LineMetricForFil
 	reporter.PrintMetrics(report.FilesDir, timings, filenameAndLine)
 }
 
-func (reporter *TextReporter) PrintFooter() {
+func (reporter *TextReporter) Epilog() {
+	reporter.generateCtags()
+}
+
+func (reporter *TextReporter) generateCtags() {
+	err := helper.RunCommand(
+		"ctags",
+		"-R",
+		"--tag-relative",
+		"-o",
+		reporter.ReportDir + "/tags",
+		reporter.ReportDir + "/" + report.FilesDir)
+	if err != nil {
+		log.Printf("ctags ran with error: %v", err)
+	}
 }

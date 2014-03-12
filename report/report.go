@@ -19,9 +19,9 @@ type Report struct {
 
 type Reporter interface {
 	PrintMetrics(filesDir string, timings LineMetric, filenameAndLine string)
-	PrintHeader(header string)
+	Prolog(header string)
 	PopulateProfile(profileFor LineMetricForFiles, record string)
-	PrintFooter()
+	Epilog()
 }
 
 func GetFilenameAndLineNumber(filenameAndLine string) (string, int) {

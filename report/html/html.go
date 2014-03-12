@@ -21,7 +21,7 @@ func New(reportDir string) *HtmlReporter {
 	return &reporter
 }
 
-func (reporter *HtmlReporter) PrintHeader(header string) {
+func (reporter *HtmlReporter) Prolog(header string) {
 	fmt.Fprint(reporter.ProfileFile, "<table><tr>")
 	for _, head := range(strings.Fields(header)) {
 		fmt.Fprintf(reporter.ProfileFile, "<th>%v</th>", head)
@@ -62,6 +62,6 @@ func (reporter *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFil
 	reporter.PrintMetrics(report.FilesDir, timings, filenameAndLine)
 }
 
-func (reporter *HtmlReporter) PrintFooter() {
-	fmt.Fprintln(reporter.ProfileFile, "</table>")
+func (reporter *HtmlReporter) Epilog() {
+	fmt.Fprintln(reporter.ProfileFile, "</table>");
 }
