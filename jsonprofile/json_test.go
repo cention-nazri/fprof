@@ -89,6 +89,8 @@ func TestDecodeFromBytes(tt *testing.T) {
 			null,
 			{
 				"function": {
+					"filename" : "/filename",
+					"start_line" : 88,
 					"callers": null,
 					"exclusive_duration": {
 						"nsec": 0,
@@ -129,5 +131,7 @@ func TestDecodeFromBytes(tt *testing.T) {
 	failIf(Lines[1].Function.InclusiveDuration.Nsec != 732324)
 	failIf(Lines[1].Function.ExclusiveDuration.Sec != 0)
 	failIf(Lines[1].Function.ExclusiveDuration.Nsec != 0)
+	failIf(Lines[1].Function.Filename != "/filename")
+	failIf(Lines[1].Function.StartLine != 88)
 
 }

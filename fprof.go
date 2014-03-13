@@ -14,6 +14,7 @@ import "fprof/helper"
 import "fprof/report"
 import "fprof/report/text"
 import "fprof/report/html"
+import "fprof/jsonprofile"
 
 var reportDir = "fprof"
 var reportType = "txt"
@@ -30,6 +31,19 @@ func main() {
 		reportType = *pReportType
 	}
 
+	reportFromJson()
+	//reportFromTxt()
+}
+
+func reportFromJson() {
+	fileProfiles := jsonprofile.From(os.Stdin)
+
+	var reporter report.Reporter
+	reporter = html.New(reportDir)
+	reporter.ReportFunctions(fileProfiles)
+}
+
+func reportFromTxt() {
 	profileFor := make(report.LineMetricForFiles)
 
 	scanner := bufio.NewScanner(os.Stdin)

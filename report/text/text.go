@@ -7,6 +7,7 @@ import (
 
 import "fprof/report"
 import "fprof/helper"
+import "fprof/jsonprofile"
 
 type TextReporter struct {
 	report.Report
@@ -50,6 +51,9 @@ func (reporter *TextReporter) PopulateProfile(profileFor report.LineMetricForFil
 
 func (reporter *TextReporter) Epilog() {
 	reporter.generateCtags()
+}
+
+func (reporter *TextReporter) ReportFunctions(profile jsonprofile.FileProfile) {
 }
 
 func (reporter *TextReporter) generateCtags() {
