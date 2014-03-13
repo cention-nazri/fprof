@@ -76,7 +76,7 @@ func TestDecodeFunctionCallers(tt *testing.T) {
 		log.Fatal(err)
 	}
 	assertEqual(caller.At, 66, "caller.At")
-	assertEqual(caller.File, "/some/file", "caller.File")
+	assertEqual(caller.Filename, "/some/file", "caller.Filename")
 	assertEqual(caller.Frequency, 1, "caller.Frequency")
 	assertEqual(caller.Name, "printf", "caller.Name")
 	assertEqual(caller.TotalDuration, TimeSpec{42, 23989}, "caller.TotalDuration")

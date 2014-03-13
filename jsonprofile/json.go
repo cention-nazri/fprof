@@ -2,31 +2,51 @@ package jsonprofile
 
 import (
 	"log"
+	"fmt"
 	"io"
 	"sort"
 )
 
 import "encoding/json"
 
+const ONE_BILLION = 1000000000
+const ONE_MILLION = 1000000
+
 type FileProfile map[string][]*LineProfile
 
 type FunctionProfileSlice []*FunctionProfile
+type FunctionCallerSlice []*FunctionCaller
 
+type Counter uint64
 type LineProfile struct {
 	Function      *FunctionProfile `json:"function"`
-	Hits          uint64           `json:"hits"`
+	Hits          Counter           `json:"hits"`
 	TotalDuration TimeSpec         `json:"total_duration"`
+	CallsMade     Counter
+	TimeInFunctions TimeSpec
 }
 
 type FunctionProfile struct {
 	Name              string           `json:"name"`
 	Filename          string           `json:"filename"`
-	StartLine         uint64           `json:"start_line"`
-	Hits              uint64           `json:"hits"`
+	StartLine         Counter           `json:"start_line"`
+	Hits              Counter           `json:"hits"`
 	ExclusiveDuration TimeSpec         `json:"exclusive_duration"`
 	InclusiveDuration TimeSpec         `json:"inclusive_duration"`
 	IsNative          bool             `json:"is_native"`
-	Callers           []FunctionCaller `json:"callers"`
+	Callers           FunctionCallerSlice `json:"callers"`
+}
+
+func (fc *FunctionProfile) CountCallingPlaces() int {
+	return len(fc.Callers)
+}
+
+func (fc *FunctionProfile) CountCallingFiles() int {
+	files := make(map[string]int)
+	for _, v := range(fc.Callers) {
+		files[v.Filename]++
+	}
+	return len(files)
 }
 
 type TimeSpec struct {
@@ -35,21 +55,45 @@ type TimeSpec struct {
 }
 
 type FunctionCaller struct {
-	At            uint64   `json:"at"`
-	File          string   `json:"file"`
-	Frequency     uint64   `json:"frequency"`
+	At            Counter   `json:"at"`
+	Filename      string   `json:"file"`
+	Frequency     Counter   `json:"frequency"`
 	Name          string   `json:"name"`
 	TotalDuration TimeSpec `json:"total_duration"`
+}
+
+func (ts *TimeSpec) AverageInMilliseconds(n Counter) float64 {
+	var total float64
+	total = float64(ts.Sec * ONE_BILLION + ts.Nsec) / ONE_MILLION
+	return float64(total) / float64(n)
+}
+
+func (ts *TimeSpec) Add(other TimeSpec) {
+	ts.Nsec += other.Nsec
+	if (ts.Nsec > ONE_BILLION) {
+		ts.Sec++
+	}
+	ts.Sec += other.Sec
+}
+
+func (ts TimeSpec) InMillisecondsStr() string {
+	return fmt.Sprintf("%.3f", ts.InMilliseconds())
 }
 
 func (ts TimeSpec) InMilliseconds() float64 {
 	return float64(ts.Sec) * 1000 + float64(ts.Nsec) / 1000000
 }
 
+func (n Counter) EmptyIfZero() interface{} {
+	if (n > 0) {
+		return n
+	}
+	return ""
+}
+
 func (ts TimeSpec) NonZeroMsOrNone() interface{} {
-	v := ts.InMilliseconds()
-	if (v > 0) {
-		return v
+	if (ts.Sec != 0 || ts.Nsec != 0) {
+		return ts.InMillisecondsStr()
 	}
 	return ""
 }
@@ -86,6 +130,15 @@ func From(stream io.Reader) FileProfile {
 
 }
 
+func (p FunctionCallerSlice) Len() int { return len(p) }
+func (p FunctionCallerSlice) Less(j, i int) bool {
+	if p[i].Frequency < p[j].Frequency {
+		return true
+	}
+	return false
+}
+func (p FunctionCallerSlice) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
 func (p FunctionProfileSlice) Len() int {
 	return len(p)
 }
@@ -108,24 +161,35 @@ func (p FunctionProfileSlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
-func (profile *FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSlice {
+func (profile FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSlice {
 
 	calls := profile.getFunctionCalls()
 	sort.Sort(calls)
 	return calls
 }
 
-func (fileProfiles *FileProfile) getFunctionCalls() FunctionProfileSlice {
+func (fileProfiles *FileProfile) injectCallerDurations(callers FunctionCallerSlice) {
+	for _, caller := range(callers) {
+
+		fmt.Printf("%s:%d frequency: %d\n", caller.Filename, caller.At, caller.Frequency);
+		(*fileProfiles)[caller.Filename][caller.At].CallsMade += caller.Frequency
+		(*fileProfiles)[caller.Filename][caller.At].TimeInFunctions.Add(caller.TotalDuration)
+	}
+}
+
+func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 	var calls FunctionProfileSlice
 
-	for file, lineProfiles := range *fileProfiles {
+	for file, lineProfiles := range fileProfiles {
 		for lineNo, lineProfile := range lineProfiles {
 			if lineProfile == nil || lineProfile.Function == nil {
 				continue
 			}
 			lineProfile.Function.Filename = file
-			lineProfile.Function.StartLine = uint64(lineNo)
+			lineProfile.Function.StartLine = Counter(lineNo)
 			calls = append(calls, lineProfile.Function)
+			sort.Sort(lineProfile.Function.Callers)
+			fileProfiles.injectCallerDurations(lineProfile.Function.Callers)
 		}
 	}
 	return calls
