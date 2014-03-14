@@ -16,13 +16,21 @@ type FileProfile map[string][]*LineProfile
 
 type FunctionProfileSlice []*FunctionProfile
 type FunctionCallerSlice []*FunctionCaller
+type FunctionCall struct {
+	To *FunctionProfile
+	CallsMade Counter
+	TimeInFunctions TimeSpec
+}
+type FunctionCallSlice []FunctionCall
 
 type Counter uint64
 type LineProfile struct {
 	Function      *FunctionProfile `json:"function"`
 	Hits          Counter           `json:"hits"`
 	TotalDuration TimeSpec         `json:"total_duration"`
-	CallsMade     Counter
+	FunctionCalls FunctionCallSlice
+	/* Cumulative of calls in FunctionCalls: */
+	CallsMade Counter
 	TimeInFunctions TimeSpec
 }
 
@@ -95,7 +103,7 @@ func (n Counter) EmptyIfZero() interface{} {
 	return ""
 }
 
-func (ts TimeSpec) NonZeroMsOrNone() interface{} {
+func (ts TimeSpec) NonZeroMsOrNone() string {
 	if (ts.Sec != 0 || ts.Nsec != 0) {
 		return ts.InMillisecondsStr()
 	}
@@ -182,7 +190,8 @@ func (profile FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSli
 	return calls
 }
 
-func (fp FileProfile) injectCallerDurations(callers FunctionCallerSlice) {
+func (fp FileProfile) injectCallerDurations(function *FunctionProfile) {
+	callers := function.Callers
 	for _, caller := range(callers) {
 
 		//fmt.Printf("%s:%d frequency: %d\n", caller.Filename, caller.At, caller.Frequency);
@@ -194,8 +203,11 @@ func (fp FileProfile) injectCallerDurations(callers FunctionCallerSlice) {
 			if lines[caller.At-1] == nil {
 				lines[caller.At-1] = &LineProfile{}
 			}
-			lines[caller.At-1].CallsMade += caller.Frequency
-			lines[caller.At-1].TimeInFunctions.Add(caller.TotalDuration)
+
+			lp := lines[caller.At-1]
+			lp.FunctionCalls = append(lp.FunctionCalls, FunctionCall{function, caller.Frequency, caller.TotalDuration})
+			lp.CallsMade += caller.Frequency
+			lp.TimeInFunctions.Add(caller.TotalDuration)
 		} else {
 			log.Printf("?? No line profiles for [%s] ??", caller.Filename)
 		}
@@ -214,7 +226,7 @@ func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 			lineProfile.Function.StartLine = Counter(lineNo)
 			calls = append(calls, lineProfile.Function)
 			//sort.Sort(lineProfile.Function.Callers)
-			fileProfiles.injectCallerDurations(lineProfile.Function.Callers)
+			fileProfiles.injectCallerDurations(lineProfile.Function)
 		}
 	}
 	return calls

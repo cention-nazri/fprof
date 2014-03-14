@@ -9,7 +9,7 @@ import (
 	"strings"
 	"path"
 	"html"
-	"sort"
+	_ "sort"
 )
 
 import "fprof/report"
@@ -23,13 +23,14 @@ type HtmlReporter struct {
 }
 
 type HtmlWriter struct {
+	SourceFile string
 	HtmlFilename string
 	w io.Writer
 	indent int
 }
 
-func NewHtmlWriter(htmlfile string) *HtmlWriter {
-	hw := HtmlWriter{htmlfile, helper.CreateFile(htmlfile), 0}
+func NewHtmlWriter(sourceFile, htmlfile string) *HtmlWriter {
+	hw := HtmlWriter{sourceFile, htmlfile, helper.CreateFile(htmlfile), 0}
 	return &hw
 }
 
@@ -284,15 +285,16 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		hw.writeln(html.EscapeString(sourceLine))
 		/* Time spent calling functions */
 		/* FIXME populater function call metric from lp.Function.Callers */
-		if lp != nil && lp.Function != nil {
-			callers := lp.Function.Callers
-			sort.Sort(callers)
-			for _, c := range(callers) {
-				hw.commentln(indent, "Spent %vms making %d call(s) to %s(), avg %vms/call",
-					c.TotalDuration.InMillisecondsStr(),
-					c.Frequency,
-					htmlLink(c.Filename, c.Name, hw.HtmlFilename, c.At),
-					c.TotalDuration.AverageInMilliseconds(c.Frequency))
+		if lp != nil && len(lp.FunctionCalls) > 0 {
+			for _, c := range(lp.FunctionCalls) {
+				callTxt := "call" // i18n unfriendly
+				if c.CallsMade > 1 { callTxt = "call" }
+				hw.commentln(indent, "Spent %vms making %d %s to %s(), avg %.3fms/call",
+					c.TimeInFunctions.InMillisecondsStr(),
+					c.CallsMade,
+					callTxt,
+					htmlLink(reporter.htmlLineFilename(hw.SourceFile), c.To.Name, reporter.htmlLineFilename(c.To.Filename), c.To.StartLine-1),
+					c.TimeInFunctions.AverageInMilliseconds(c.CallsMade))
 			}
 		}
 	}
@@ -306,7 +308,7 @@ func makeEmptyLineProfiles(file string) []*jsonprofile.LineProfile {
 func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile) {
 	htmlfile := reporter.ReportDir +"/"+ reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
-	hw := NewHtmlWriter(htmlfile)
+	hw := NewHtmlWriter(file, htmlfile)
 	hw.HtmlWithCssBodyOpen(pathToRoot(file) + "../style.css")
 	hw.Html(file)
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
@@ -431,7 +433,7 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
 	reporter.GenerateHtmlFiles(fileProfiles)
 	log.Println("Generating functions html report")
-	hw := NewHtmlWriter(reporter.ReportDir + "/functions.html")
+	hw := NewHtmlWriter("", reporter.ReportDir + "/functions.html")
 
 	hw.HtmlWithCssBodyOpen("style.css")
 	hw.Html("Functions sorted by exclusive time")
