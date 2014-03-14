@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"strings"
 	"path"
+	"html"
 )
 
 import "fprof/report"
@@ -58,8 +59,12 @@ func getFirstWhiteSpaces(str string) string {
 }
 
 func (hw *HtmlWriter) commentln(indent, format string, args ...interface{}) {
+	hw.comment(indent, format + "\n", args...)
+}
+
+func (hw *HtmlWriter) comment(indent, format string, args ...interface{}) {
 	comment := fmt.Sprintf(format, args...)
-	fmt.Fprintf(hw.w, "%s// %s\n", indent, comment)
+	fmt.Fprintf(hw.w, "%s// %s", indent, comment)
 }
 
 func (hw *HtmlWriter) begin(el string, attrs ...string) {
@@ -172,12 +177,14 @@ func (reporter *HtmlReporter) htmlLineFilename(file string) string {
 	return report.FilesDir+file+"-line.html"
 }
 
-func (reporter *HtmlReporter) htmlLink(name, sourceFile string, lineNo jsonprofile.Counter) string {
-	href := fmt.Sprintf("%s#%d", reporter.htmlLineFilename(sourceFile), lineNo)
-	return `<a href="` + href + `">` + name + `</a>`
+func htmlLink(fromFile, funcName, toFile string, lineNo jsonprofile.Counter) string {
+	return fmt.Sprintf(`<a href="%s#%d">%s</a>`,  getRelativePathTo(toFile, fromFile), lineNo, funcName)
 }
 
-func pathToRoot(file string) string { 
+func pathToRoot(file string) string {
+	if file[0] != '/' {
+		file = "/" + file
+	}
 	up := ""
 	for d := path.Dir(file); len(d) > 1; d = path.Dir(d) {
 		up += "../"
@@ -185,7 +192,50 @@ func pathToRoot(file string) string {
 	return up
 }
 
-func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, scanner *bufio.Scanner) {
+func explodePath(path string) []string {
+	return strings.FieldsFunc(path, func(ch rune) bool {
+		return ch == '/'
+	})
+}
+
+func stripCommonPath(file, from string) (string, string) {
+	branchPoint := -1
+	i := 0
+	for i < len(file) && i < len(from) && file[i] == from[i] {
+		if file[i] == '/' {
+			branchPoint = i
+		}
+		i++
+	}
+	if branchPoint > 0 {
+		file = file[branchPoint+1:]
+		from = from[branchPoint+1:]
+	}
+	return file, from
+}
+
+func getRelativePathTo(to, from string) string {
+	to, from = path.Clean(to), path.Clean(from)
+	if to == from {
+		return ""
+	}
+	if from == "." {
+		return to
+	}
+
+	//log.Printf("getRelativePathTo(%s, %s)\n", to, from)
+	rto, rfrom := stripCommonPath(to, from)
+	r := ""
+	if path.Dir(rto) != "." {
+		r = "../" + pathToRoot(path.Dir(rfrom)) + rto
+	} else {
+		r = pathToRoot(path.Dir(rfrom)) + rto
+	}
+	//log.Printf(" => %s\n", r)
+	return r
+}
+
+func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, fp *jsonprofile.FunctionProfile, scanner *bufio.Scanner) {
 	hasSourceLine := false
 	sourceLine := ""
 	indent := ""
@@ -199,6 +249,8 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		sourceLine = scanner.Text()
 		indent = getFirstWhiteSpaces(sourceLine)
 	}
+
+
 	if lp == nil {
 		hw.Td("","","", "")
 		hw.TdOpen(`class="s"`)
@@ -206,36 +258,35 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		hw.Td(lp.Hits, lp.TotalDuration.InMillisecondsStr())
 		hw.Td(lp.CallsMade.EmptyIfZero(), lp.TimeInFunctions.NonZeroMsOrNone())
 		hw.TdOpen(`class="s"`)
-		f := lp.Function
-		if f != nil  {
-			nCallers := len(f.Callers)
-			if nCallers == 0 {
-				hw.commentln(indent, "Spent %vms within %v()",
-				f.InclusiveDuration.InMillisecondsStr(),
-				f.Name)
-			} else {
+	}
+	if fp != nil  {
+		nCallers := len(fp.Callers)
+		if nCallers == 0 {
+			hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.Name)
+		} else {
+			hw.commentln(indent, "Spent %vms within %v() which was called:", fp.InclusiveDuration.InMillisecondsStr(), fp.Name)
+			calleeFile := reporter.htmlLineFilename(fp.Filename)
+			for _, c := range(fp.Callers) {
+				callerFile := reporter.htmlLineFilename(c.Filename)
+				hw.commentln(indent, "%d time(s) (%vms) by %s at line %d, avg %.3fms/call",
+				c.Frequency, c.TotalDuration.InMillisecondsStr(),
+				htmlLink(calleeFile, c.Name + "()", callerFile, c.At),
 
-				hw.commentln(indent, "Spent %vms within %v() which was called:",
-				f.InclusiveDuration.InMillisecondsStr(),
-				f.Name)
-				for _, c := range(f.Callers) {
-					hw.commentln(indent, "%d time(s) (%vms) by %s at line %d, avg %.3fms/call",
-					c.Frequency, c.TotalDuration.InMillisecondsStr(),
-					reporter.htmlLink(c.Name + "()", c.Filename, c.At),
-					
-					c.At, c.TotalDuration.AverageInMilliseconds(c.Frequency),
-				)
+				c.At, c.TotalDuration.AverageInMilliseconds(c.Frequency))
 			}
-		}
 		}
 	}
 	if hasSourceLine {
-		hw.writeln(sourceLine)
+		hw.writeln(html.EscapeString(sourceLine))
 	}
 	hw.TdClose()
 	hw.TrClose()
 }
-func (reporter *HtmlReporter) writeOneHtmlFile(file string, lineProfiles []*jsonprofile.LineProfile) {
+
+func makeEmptyLineProfiles(file string) []*jsonprofile.LineProfile {
+	return make([]*jsonprofile.LineProfile, helper.GetLineCount(file))
+}
+func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile) {
 	htmlfile := reporter.ReportDir +"/"+ reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
 	hw := NewHtmlWriter(helper.CreateFile(htmlfile))
@@ -250,10 +301,23 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, lineProfiles []*json
 		return
 	}
 	scanner := bufio.NewScanner(sourceFile)
+	lineProfiles := fileProfiles[file]
+	if lineProfiles == nil {
+		lineProfiles = makeEmptyLineProfiles(file)
+	}
 
-	for lineNo, lp := range lineProfiles {
-		if lineNo == 0 { continue; }
-		reporter.writeOneTableRow(hw, lineNo, lp, scanner)
+	var fp *jsonprofile.FunctionProfile
+	for i, lp := range lineProfiles {
+		lineNo := i + 1
+		fp = nil
+		if i + 1 < len(lineProfiles) {
+			if lineProfiles[i+1] != nil {
+				fp = lineProfiles[i+1].Function
+				//log.Println("function:",fp)
+				//log.Println("ncallers", len(fp.Callers))
+			}
+		}
+		reporter.writeOneTableRow(hw, lineNo, lp, fp, scanner)
 	}
 	hw.TableClose()
 	for i := 0; i < 50; i++ {
@@ -298,13 +362,37 @@ td.s {
 
 func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile) {
 	//helper.CreateFile(reporter.ReportDir +"/"+ report.FilesDir)
+
+	fileMap := make(map[string]bool)
 	done := make(chan bool)
 	for file, lineProfiles := range fileProfiles {
-		go func (file string, lineProfiles []*jsonprofile.LineProfile) {
-			reporter.writeOneHtmlFile(file, lineProfiles)
+		fileMap[file] = true
+		for _, v := range(lineProfiles) {
+			if v == nil { continue }
+			if v.Function == nil { continue }
+			fp := v.Function
+			if len(fp.Filename) == 0 {
+				log.Println("Got empty filename from func profile")
+			} else {
+				fileMap[fp.Filename] = true
+			}
+			for _, caller := range(fp.Callers) {
+				if caller == nil { continue }
+				if len(caller.Filename) == 0 {
+					log.Println("Got empty filename from caller profile")
+				} else {
+					fileMap[caller.Filename] = true
+				}
+			}
+		}
+	}
+	log.Println("Generating source html files")
+	for filename, _ := range(fileMap) {
+		go func (file string, fileProfile jsonprofile.FileProfile) {
+			reporter.writeOneHtmlFile(file, fileProfiles)
 			// fmt.Println(file)
 			done <- true
-		}(file, lineProfiles)
+		}(filename, fileProfiles)
 	}
 
 	for i := 0; i < len(fileProfiles); i++ {
@@ -322,8 +410,10 @@ func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string) {
 
 func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfile) {
 	reporter.GenerateCssFile()
+	log.Println("Cross referencing function call metrics...")
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
 	reporter.GenerateHtmlFiles(fileProfiles)
+	log.Println("Generating functions html report")
 	html := helper.CreateFile(reporter.ReportDir + "/functions.html")
 	hw := NewHtmlWriter(html)
 
@@ -331,15 +421,31 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	hw.Html("Functions sorted by exclusive time")
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
 	hw.Th("Calls", "Places", "Files", "Exclusive", "Inclusive", "Function")
+	na := "n/a"
+	//done := make(chan bool)
+	//nthreads := 0
 	for _, fc := range(functionCalls) {
 		hw.TrOpen()
-		hw.Td(fc.Hits,
-			fc.CountCallingPlaces(),
-			fc.CountCallingFiles(),
-			fc.ExclusiveDuration.NonZeroMsOrNone(),
-			fc.InclusiveDuration.NonZeroMsOrNone())
-		hw.TdOpen(`class="s"`)
-		hw.write(reporter.htmlLink(fc.Name, fc.Filename, fc.StartLine))
+		if fc == nil {
+			hw.Td(na, na, na, na, na)
+			hw.TdOpen(`class="s"`)
+			hw.write(na)
+		} else {
+			hw.Td(fc.Hits,
+				fc.CountCallingPlaces(),
+				fc.CountCallingFiles(),
+				fc.ExclusiveDuration.NonZeroMsOrNone(),
+				fc.InclusiveDuration.NonZeroMsOrNone())
+			hw.TdOpen(`class="s"`)
+			//if fileProfiles[fc.Filename] == nil {
+			//	go func (file string, lineProfiles []*jsonprofile.LineProfile) {
+			//		reporter.writeOneHtmlFile(file, lineProfiles)
+			//		done <- true
+			//	}(fc.Filename, make([]*jsonprofile.LineProfile, helper.GetLineCount(fc.Filename)))
+			//	nthreads++
+			//}
+			hw.write(htmlLink(".", fc.Name, reporter.htmlLineFilename(fc.Filename), fc.StartLine))
+		}
 		hw.TdClose()
 		//fmt.Println(fc.ExclusiveDuration.InMilliseconds(), fc.Name)
 		hw.TrClose()
@@ -348,6 +454,9 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	hw.TableClose()
 	hw.BodyClose()
 	hw.HtmlClose()
+	//for i:=0; i<nthreads; i++ {
+	//	<-done
+	//}
 }
 
 func (reporter *HtmlReporter) Epilog() {

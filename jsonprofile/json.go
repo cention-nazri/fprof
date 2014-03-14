@@ -38,11 +38,15 @@ type FunctionProfile struct {
 }
 
 func (fc *FunctionProfile) CountCallingPlaces() int {
+	if fc.Callers == nil {
+		return 0;
+	}
 	return len(fc.Callers)
 }
 
 func (fc *FunctionProfile) CountCallingFiles() int {
 	files := make(map[string]int)
+	log.Println("callers for CallingFiles", fc.Callers)
 	for _, v := range(fc.Callers) {
 		files[v.Filename]++
 	}
@@ -144,6 +148,16 @@ func (p FunctionProfileSlice) Len() int {
 }
 
 func (p FunctionProfileSlice) Less(j, i int) bool {
+	if p[i] == nil && p[j] == nil {
+		return false
+	}
+	if p[i] != nil && p[j] == nil {
+		return false
+	}
+	if p[i] == nil && p[j] != nil {
+		return true
+	}
+
 	if p[i].ExclusiveDuration.Sec < p[j].ExclusiveDuration.Sec {
 		return true
 	} else if p[i].ExclusiveDuration.Sec > p[j].ExclusiveDuration.Sec {
@@ -168,17 +182,28 @@ func (profile FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSli
 	return calls
 }
 
-func (fileProfiles *FileProfile) injectCallerDurations(callers FunctionCallerSlice) {
+func (fp FileProfile) injectCallerDurations(callers FunctionCallerSlice) {
 	for _, caller := range(callers) {
 
-		fmt.Printf("%s:%d frequency: %d\n", caller.Filename, caller.At, caller.Frequency);
-		(*fileProfiles)[caller.Filename][caller.At].CallsMade += caller.Frequency
-		(*fileProfiles)[caller.Filename][caller.At].TimeInFunctions.Add(caller.TotalDuration)
+		//fmt.Printf("%s:%d frequency: %d\n", caller.Filename, caller.At, caller.Frequency);
+		lines := fp[caller.Filename]
+		if lines != nil {
+			log.Println("file", caller.Filename)
+			log.Println("len lines", len(lines))
+			log.Println("caller.At", caller.At)
+			if lines[caller.At-1] == nil {
+				lines[caller.At-1] = &LineProfile{}
+			}
+			lines[caller.At-1].CallsMade += caller.Frequency
+			lines[caller.At-1].TimeInFunctions.Add(caller.TotalDuration)
+		} else {
+			log.Printf("?? No line profiles for [%s] ??", caller.Filename)
+		}
 	}
 }
 
 func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
-	var calls FunctionProfileSlice
+	calls := make(FunctionProfileSlice,50)
 
 	for file, lineProfiles := range fileProfiles {
 		for lineNo, lineProfile := range lineProfiles {
@@ -188,7 +213,7 @@ func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 			lineProfile.Function.Filename = file
 			lineProfile.Function.StartLine = Counter(lineNo)
 			calls = append(calls, lineProfile.Function)
-			sort.Sort(lineProfile.Function.Callers)
+			//sort.Sort(lineProfile.Function.Callers)
 			fileProfiles.injectCallerDurations(lineProfile.Function.Callers)
 		}
 	}
