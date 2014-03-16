@@ -284,7 +284,7 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 	if hasSourceLine {
 		hw.writeln(html.EscapeString(sourceLine))
 		/* Time spent calling functions */
-		/* FIXME populater function call metric from lp.Function.Callers */
+		/* FIXME populate function call metric from lp.Function.Callers */
 		if lp != nil && len(lp.FunctionCalls) > 0 {
 			for _, c := range(lp.FunctionCalls) {
 				callTxt := "call" // i18n unfriendly
