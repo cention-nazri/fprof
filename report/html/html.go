@@ -288,7 +288,7 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		if lp != nil && len(lp.FunctionCalls) > 0 {
 			for _, c := range(lp.FunctionCalls) {
 				callTxt := "call" // i18n unfriendly
-				if c.CallsMade > 1 { callTxt = "call" }
+				if c.CallsMade > 1 { callTxt = "calls" }
 				hw.commentln(indent, "Spent %vms making %d %s to %s(), avg %.3fms/call",
 					c.TimeInFunctions.InMillisecondsStr(),
 					c.CallsMade,
