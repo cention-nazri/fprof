@@ -23,10 +23,19 @@ type FunctionCall struct {
 }
 type FunctionCallSlice []FunctionCall
 
+type NameSpacedEntity struct {
+	NameSpace	  string	   `json:"namespace"`
+	Name              string           `json:"name"`
+}
+
+type HitCount struct {
+	Hits          Counter          `json:"hits"`
+}
+
 type Counter uint64
 type LineProfile struct {
 	Function      *FunctionProfile `json:"function"`
-	Hits          Counter           `json:"hits"`
+	HitCount
 	TotalDuration TimeSpec         `json:"total_duration"`
 	FunctionCalls FunctionCallSlice
 	/* Cumulative of calls in FunctionCalls: */
@@ -35,10 +44,10 @@ type LineProfile struct {
 }
 
 type FunctionProfile struct {
-	Name              string           `json:"name"`
+	NameSpacedEntity
 	Filename          string           `json:"filename"`
 	StartLine         Counter           `json:"start_line"`
-	Hits              Counter           `json:"hits"`
+	HitCount
 	ExclusiveDuration TimeSpec         `json:"exclusive_duration"`
 	InclusiveDuration TimeSpec         `json:"inclusive_duration"`
 	IsNative          bool             `json:"is_native"`
@@ -70,7 +79,7 @@ type FunctionCaller struct {
 	At            Counter   `json:"at"`
 	Filename      string   `json:"file"`
 	Frequency     Counter   `json:"frequency"`
-	Name          string   `json:"name"`
+	NameSpacedEntity
 	TotalDuration TimeSpec `json:"total_duration"`
 }
 
