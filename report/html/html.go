@@ -391,6 +391,10 @@ td.s {
 .profile_note {
 	color: gray;
 }
+.profile_note:hover {
+	color: black;
+	background-color: gray;
+}
 `)
 }
 
