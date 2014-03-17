@@ -328,7 +328,7 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 	}
 	sourceFile, err := os.Open(file)
 	if err != nil {
-		log.Println("Error reading %v:%v", file, err)
+		log.Printf("Error reading %v:%v\n", file, err)
 		return
 	}
 	scanner := bufio.NewScanner(sourceFile)
