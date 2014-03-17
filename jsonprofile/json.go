@@ -70,7 +70,7 @@ func (fc *FunctionProfile) CountCallingPlaces() int {
 
 func (fc *FunctionProfile) CountCallingFiles() int {
 	files := make(map[string]int)
-	log.Println("callers for CallingFiles", fc.Callers)
+	//log.Println("callers for CallingFiles", fc.Callers)
 	for _, v := range(fc.Callers) {
 		files[v.Filename]++
 	}
@@ -213,9 +213,9 @@ func (fp FileProfile) injectCallerDurations(function *FunctionProfile) {
 		//fmt.Printf("%s:%d frequency: %d\n", caller.Filename, caller.At, caller.Frequency);
 		lines := fp[caller.Filename]
 		if lines != nil {
-			log.Println("file", caller.Filename)
-			log.Println("len lines", len(lines))
-			log.Println("caller.At", caller.At)
+			//log.Println("file", caller.Filename)
+			//log.Println("len lines", len(lines))
+			//log.Println("caller.At", caller.At)
 			if lines[caller.At-1] == nil {
 				lines[caller.At-1] = &LineProfile{}
 			}
