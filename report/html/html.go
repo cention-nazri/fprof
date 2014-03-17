@@ -305,6 +305,14 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 func makeEmptyLineProfiles(file string) []*jsonprofile.LineProfile {
 	return make([]*jsonprofile.LineProfile, helper.GetLineCount(file))
 }
+
+func fileExists(file string) bool {
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile) {
 	htmlfile := reporter.ReportDir +"/"+ reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
@@ -314,6 +322,10 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
 	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions", "Code")
 
+	if fileExists(file) {
+		log.Printf("Skipped (file does not exist): %s\n", file);
+		return;
+	}
 	sourceFile, err := os.Open(file)
 	if err != nil {
 		log.Println("Error reading %v:%v", file, err)
