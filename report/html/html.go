@@ -67,7 +67,7 @@ func (hw *HtmlWriter) commentln(indent, format string, args ...interface{}) {
 
 func (hw *HtmlWriter) comment(indent, format string, args ...interface{}) {
 	comment := fmt.Sprintf(format, args...)
-	fmt.Fprintf(hw.w, "%s// %s", indent, comment)
+	fmt.Fprintf(hw.w, `<div class="profile_note">%s// %s</div>`, indent, comment)
 }
 
 func (hw *HtmlWriter) begin(el string, attrs ...string) {
@@ -387,6 +387,9 @@ td.s {
 	text-align: left;
 	font-family: monospace;
 	white-space: pre;
+}
+.profile_note {
+	color: gray;
 }
 `)
 }
