@@ -322,7 +322,7 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
 	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions", "Code")
 
-	if fileExists(file) {
+	if ! fileExists(file) {
 		log.Printf("Skipped (file does not exist): %s\n", file);
 		return;
 	}
