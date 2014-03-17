@@ -238,6 +238,41 @@ func getRelativePathTo(to, from string) string {
 	return r
 }
 
+func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.FunctionProfile, indent string) {
+	nCallers := len(fp.Callers)
+	if nCallers == 0 {
+		hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
+	} else {
+		hw.commentln(indent, "Spent %vms within %v() which was called:", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
+		calleeFile := reporter.htmlLineFilename(fp.Filename)
+		for _, c := range(fp.Callers) {
+			callerFile := reporter.htmlLineFilename(c.Filename)
+			hw.commentln(indent, "%d time(s) (%vms) by %s() at %s, avg %.3fms/call",
+				c.Frequency, c.TotalDuration.InMillisecondsStr(),
+				c.FullName(),
+				htmlLink(calleeFile, fmt.Sprintf("line %d", c.At), callerFile, c.At),
+				c.TotalDuration.AverageInMilliseconds(c.Frequency))
+		}
+	}
+}
+
+func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.LineProfile, indent string) {
+	/* Time spent calling functions */
+	/* FIXME populate function call metric from lp.Function.Callers */
+	if lp != nil && len(lp.FunctionCalls) > 0 {
+		for _, c := range(lp.FunctionCalls) {
+			callTxt := "call" // i18n unfriendly
+			if c.CallsMade > 1 { callTxt = "calls" }
+			hw.commentln(indent, "Spent %vms making %d %s to %s(), avg %.3fms/call",
+				c.TimeInFunctions.InMillisecondsStr(),
+				c.CallsMade,
+				callTxt,
+				htmlLink(reporter.htmlLineFilename(hw.SourceFile), c.To.FullName(), reporter.htmlLineFilename(c.To.Filename), c.To.StartLine-1),
+				c.TimeInFunctions.AverageInMilliseconds(c.CallsMade))
+		}
+	}
+}
+
 func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, fp *jsonprofile.FunctionProfile, scanner *bufio.Scanner) {
 	hasSourceLine := false
 	sourceLine := ""
@@ -265,38 +300,11 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 
 	/* Function definition */
 	if fp != nil  {
-		nCallers := len(fp.Callers)
-		if nCallers == 0 {
-			hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
-		} else {
-			hw.commentln(indent, "Spent %vms within %v() which was called:", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
-			calleeFile := reporter.htmlLineFilename(fp.Filename)
-			for _, c := range(fp.Callers) {
-				callerFile := reporter.htmlLineFilename(c.Filename)
-				hw.commentln(indent, "%d time(s) (%vms) by %s() at %s, avg %.3fms/call",
-				c.Frequency, c.TotalDuration.InMillisecondsStr(),
-				c.FullName(),
-				htmlLink(calleeFile, fmt.Sprintf("line %d", c.At), callerFile, c.At),
-				c.TotalDuration.AverageInMilliseconds(c.Frequency))
-			}
-		}
+		reporter.showCallers(hw, fp, indent)
 	}
 	if hasSourceLine {
 		hw.writeln(html.EscapeString(sourceLine))
-		/* Time spent calling functions */
-		/* FIXME populate function call metric from lp.Function.Callers */
-		if lp != nil && len(lp.FunctionCalls) > 0 {
-			for _, c := range(lp.FunctionCalls) {
-				callTxt := "call" // i18n unfriendly
-				if c.CallsMade > 1 { callTxt = "calls" }
-				hw.commentln(indent, "Spent %vms making %d %s to %s(), avg %.3fms/call",
-					c.TimeInFunctions.InMillisecondsStr(),
-					c.CallsMade,
-					callTxt,
-					htmlLink(reporter.htmlLineFilename(hw.SourceFile), c.To.FullName(), reporter.htmlLineFilename(c.To.Filename), c.To.StartLine-1),
-					c.TimeInFunctions.AverageInMilliseconds(c.CallsMade))
-			}
-		}
+		reporter.showCallsMade(hw, lp, indent)
 	}
 	hw.TdClose()
 	hw.TrClose()
