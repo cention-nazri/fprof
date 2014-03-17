@@ -267,17 +267,17 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 	if fp != nil  {
 		nCallers := len(fp.Callers)
 		if nCallers == 0 {
-			hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.Name)
+			hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
 		} else {
-			hw.commentln(indent, "Spent %vms within %v() which was called:", fp.InclusiveDuration.InMillisecondsStr(), fp.Name)
+			hw.commentln(indent, "Spent %vms within %v() which was called:", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
 			calleeFile := reporter.htmlLineFilename(fp.Filename)
 			for _, c := range(fp.Callers) {
 				callerFile := reporter.htmlLineFilename(c.Filename)
-				hw.commentln(indent, "%d time(s) (%vms) by %s() at line %d, avg %.3fms/call",
+				hw.commentln(indent, "%d time(s) (%vms) by %s() at %s, avg %.3fms/call",
 				c.Frequency, c.TotalDuration.InMillisecondsStr(),
-				htmlLink(calleeFile, c.Name, callerFile, c.At),
-
-				c.At, c.TotalDuration.AverageInMilliseconds(c.Frequency))
+				c.FullName(),
+				htmlLink(calleeFile, fmt.Sprintf("line %d", c.At), callerFile, c.At),
+				c.TotalDuration.AverageInMilliseconds(c.Frequency))
 			}
 		}
 	}
@@ -293,7 +293,7 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 					c.TimeInFunctions.InMillisecondsStr(),
 					c.CallsMade,
 					callTxt,
-					htmlLink(reporter.htmlLineFilename(hw.SourceFile), c.To.Name, reporter.htmlLineFilename(c.To.Filename), c.To.StartLine-1),
+					htmlLink(reporter.htmlLineFilename(hw.SourceFile), c.To.FullName(), reporter.htmlLineFilename(c.To.Filename), c.To.StartLine-1),
 					c.TimeInFunctions.AverageInMilliseconds(c.CallsMade))
 			}
 		}
@@ -462,10 +462,10 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 			//	}(fc.Filename, make([]*jsonprofile.LineProfile, helper.GetLineCount(fc.Filename)))
 			//	nthreads++
 			//}
-			hw.write(htmlLink(".", fc.Name, reporter.htmlLineFilename(fc.Filename), fc.StartLine))
+			hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
 		}
 		hw.TdClose()
-		//fmt.Println(fc.ExclusiveDuration.InMilliseconds(), fc.Name)
+		//fmt.Println(fc.ExclusiveDuration.InMilliseconds(), fc.FullName())
 		hw.TrClose()
 		//fmt.Println(lines)
 	}
