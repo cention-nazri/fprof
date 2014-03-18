@@ -214,7 +214,7 @@ func isEval(f string) bool {
 }
 
 func htmlLink(fromFile, funcName, toFile string, lineNo jsonprofile.Counter) string {
-	if isEval(toFile) { return funcName }
+	if isEval(toFile) { return `<span title="Called from eval()"><i>` + funcName + `</i></span>` }
 	return fmt.Sprintf(`<a href="%s#%d">%s</a>`,  getRelativePathTo(toFile, fromFile), lineNo, funcName)
 }
 
@@ -278,13 +278,15 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 		hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
 	} else {
 		hw.commentln(indent, "Spent %vms within %v() which was called:", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
-		calleeFile := reporter.htmlLineFilename(fp.Filename)
+		calleeFile := fp.Filename
+		calleeFile = reporter.htmlLineFilename(calleeFile)
 		for _, c := range(fp.Callers) {
-			callerFile := reporter.htmlLineFilename(c.Filename)
+			callerFile, callerAt := c.Filename, c.At
+			callerFile = reporter.htmlLineFilename(callerFile)
 			hw.commentln(indent, "%d time(s) (%vms) by %s() at %s, avg %.3fms/call",
 				c.Frequency, c.TotalDuration.InMillisecondsStr(),
 				c.FullName(),
-				htmlLink(calleeFile, fmt.Sprintf("line %d", c.At), callerFile, c.At),
+				htmlLink(calleeFile, fmt.Sprintf("line %d", callerAt), callerFile, callerAt),
 				c.TotalDuration.AverageInMilliseconds(c.Frequency))
 		}
 	}
@@ -305,10 +307,13 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 				avgTxt = fmt.Sprintf(", avg %.3fms/call", c.TimeInFunctions.AverageInMilliseconds(c.CallsMade))
 			}
 
+			calleeFQN := c.To.FullName()
+			calleeFile, calleeAt := c.To.Filename, c.To.StartLine - 1
+			calleeFile = reporter.htmlLineFilename(calleeFile)
 			hw.commentln(indent, "Spent %vms %s %s()%s",
 				c.TimeInFunctions.InMillisecondsStr(),
 				callTxt,
-				htmlLink(reporter.htmlLineFilename(hw.SourceFile), c.To.FullName(), reporter.htmlLineFilename(c.To.Filename), c.To.StartLine-1),
+				htmlLink(reporter.htmlLineFilename(hw.SourceFile), calleeFQN, calleeFile, calleeAt),
 				avgTxt)
 		}
 	}
