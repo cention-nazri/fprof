@@ -105,8 +105,9 @@ func (ts *TimeSpec) AverageInMilliseconds(n Counter) float64 {
 
 func (ts *TimeSpec) Add(other TimeSpec) {
 	ts.Nsec += other.Nsec
-	if (ts.Nsec > ONE_BILLION) {
+	if (ts.Nsec >= ONE_BILLION) {
 		ts.Sec++
+		ts.Nsec = ts.Nsec % ONE_BILLION
 	}
 	ts.Sec += other.Sec
 }
