@@ -412,40 +412,21 @@ td.s {
 `)
 }
 
-func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile) map[string]bool {
-	//helper.CreateFile(reporter.ReportDir +"/"+ report.FilesDir)
-
-	fileMap := make(map[string]bool)
+func (reporter *HtmlReporter) generateHtmlFilesInParallel(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
 	done := make(chan bool)
-	for file, lineProfiles := range fileProfiles {
-		fileMap[file] = fileExists(file)
-		for _, v := range(lineProfiles) {
-			if v == nil { continue }
-			if v.Function == nil { continue }
-			fp := v.Function
-			if len(fp.Filename) == 0 {
-				log.Println("Got empty filename from func profile")
-			} else {
-				fileMap[fp.Filename] = fileExists(file)
-			}
-			for _, caller := range(fp.Callers) {
-				if caller == nil { continue }
-				if len(caller.Filename) == 0 {
-					log.Println("Got empty filename from caller profile")
-				} else {
-					fileMap[caller.Filename] = fileExists(file)
-				}
-			}
+	nFiles := 0
+	for  _, exist := range(exists) {
+		if exist {
+			nFiles++
 		}
 	}
-	log.Println("Generating source html files")
-	nFiles := 0
-	for file, exist := range(fileMap) {
+
+	log.Printf("Generating %d source html files\n", nFiles)
+	for file, exist := range(exists) {
 		if ! exist {
 			log.Printf("Skipped (file does not exist): %s\n", file);
 			continue
 		}
-		nFiles++
 		go func (file string, fileProfile jsonprofile.FileProfile) {
 			reporter.writeOneHtmlFile(file, fileProfiles)
 			// fmt.Println(file)
@@ -461,7 +442,37 @@ func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FilePro
 		//}
 		<-done
 	}
-	return fileMap
+}
+
+func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile) map[string]bool {
+	//helper.CreateFile(reporter.ReportDir +"/"+ report.FilesDir)
+
+	exists := make(map[string]bool)
+	for file, lineProfiles := range fileProfiles {
+		exists[file] = fileExists(file)
+		for _, v := range(lineProfiles) {
+			if v == nil { continue }
+			if v.Function == nil { continue }
+			fp := v.Function
+			if len(fp.Filename) == 0 {
+				log.Println("Got empty filename from func profile")
+			} else {
+				exists[fp.Filename] = fileExists(file)
+			}
+			for _, caller := range(fp.Callers) {
+				if caller == nil { continue }
+				if len(caller.Filename) == 0 {
+					log.Println("Got empty filename from caller profile")
+				} else {
+					exists[caller.Filename] = fileExists(file)
+				}
+			}
+		}
+	}
+
+
+	reporter.generateHtmlFilesInParallel(exists, fileProfiles)
+	return exists
 }
 
 func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string) {
