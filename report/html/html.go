@@ -259,16 +259,22 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.LineProfile, indent string) {
 	/* Time spent calling functions */
 	/* FIXME populate function call metric from lp.Function.Callers */
+	var callTxt string
+	var avgTxt string
 	if lp != nil && len(lp.FunctionCalls) > 0 {
 		for _, c := range(lp.FunctionCalls) {
-			callTxt := "call" // i18n unfriendly
-			if c.CallsMade > 1 { callTxt = "calls" }
-			hw.commentln(indent, "Spent %vms making %d %s to %s(), avg %.3fms/call",
+			callTxt = "in" // i18n unfriendly
+			avgTxt = ""
+			if c.CallsMade > 1 {
+				callTxt = fmt.Sprintf("making %d calls to", c.CallsMade)
+				avgTxt = fmt.Sprintf(", avg %.3fms/call", c.TimeInFunctions.AverageInMilliseconds(c.CallsMade))
+			}
+
+			hw.commentln(indent, "Spent %vms %s %s()%s",
 				c.TimeInFunctions.InMillisecondsStr(),
-				c.CallsMade,
 				callTxt,
 				htmlLink(reporter.htmlLineFilename(hw.SourceFile), c.To.FullName(), reporter.htmlLineFilename(c.To.Filename), c.To.StartLine-1),
-				c.TimeInFunctions.AverageInMilliseconds(c.CallsMade))
+				avgTxt)
 		}
 	}
 }
