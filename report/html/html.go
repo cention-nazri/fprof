@@ -10,6 +10,7 @@ import (
 	"path"
 	"html"
 	"sync"
+	"bytes"
 )
 
 import "fprof/report"
@@ -25,14 +26,35 @@ type HtmlReporter struct {
 type HtmlWriter struct {
 	SourceFile string
 	HtmlFilename string
-	w io.Writer
+	realw io.Writer
 	indent int
+	w *bytes.Buffer
 }
 
 func NewHtmlWriter(sourceFile, htmlfile string) *HtmlWriter {
-	hw := HtmlWriter{sourceFile, htmlfile, helper.CreateFile(htmlfile), 0}
+	hw := HtmlWriter{sourceFile,
+		htmlfile,
+		helper.CreateFile(htmlfile),
+		0,
+		new(bytes.Buffer),
+		}
 	return &hw
 }
+
+func (hw *HtmlWriter) writeToDiskAsync(done chan bool) {
+	work := func() {
+		fmt.Fprintf(hw.realw, hw.w.String())
+	}
+	if done == nil {
+		work()
+	} else {
+		go func() {
+			work()
+			done<- true
+		}()
+	}
+}
+
 
 func (hw *HtmlWriter) spaces() {
 	str := ""
@@ -327,10 +349,11 @@ func fileExists(file string) bool {
 	return true
 }
 
-func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile) {
+func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile, done chan bool) {
 	htmlfile := reporter.ReportDir +"/"+ reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
 	hw := NewHtmlWriter(file, htmlfile)
+	defer hw.writeToDiskAsync(done)
 	hw.HtmlWithCssBodyOpen(pathToRoot(file) + "../style.css")
 	hw.Html(file)
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
@@ -412,7 +435,7 @@ td.s {
 `)
 }
 
-func (reporter *HtmlReporter) generateHtmlFilesParallelly(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
+func (reporter *HtmlReporter) generateHtmlFilesTightLoop(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
 	nFiles := 0
 	for  _, exist := range(exists) {
 		if exist {
@@ -431,18 +454,19 @@ func (reporter *HtmlReporter) generateHtmlFilesParallelly(exists map[string]bool
 			continue
 		}
 		go func(file string) {
-			reporter.writeOneHtmlFile(file, fileProfiles)
-			done<-true
+			reporter.writeOneHtmlFile(file, fileProfiles, done)
 		}(file)
 	}
 
 	for i := 1; i <= nFiles; i++ {
 		<-done
+		percent := i * 100 / nFiles
+		fmt.Printf("%3d%%\r", percent);
 	}
 	fmt.Println("Done")
 }
 
-func (reporter *HtmlReporter) generateHtmlFilesInParallel(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
+func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string]bool, fileProfiles jsonprofile.FileProfile, nWorkers int) {
 	nFiles := 0
 	for  _, exist := range(exists) {
 		if exist {
@@ -461,7 +485,6 @@ func (reporter *HtmlReporter) generateHtmlFilesInParallel(exists map[string]bool
 	done := make(chan bool, nFiles)
 	defer close(done)
 
-	nWorkers := 8
 	log.Printf("Generating %d source html files\n", nFiles)
 	var wg sync.WaitGroup
 
@@ -469,8 +492,7 @@ func (reporter *HtmlReporter) generateHtmlFilesInParallel(exists map[string]bool
 		wg.Add(1)
 		go func() {
 			for j := range tasks {
-				reporter.writeOneHtmlFile(j.file, j.fileProfiles)
-				done<-true
+				reporter.writeOneHtmlFile(j.file, j.fileProfiles, done)
 			}
 			wg.Done()
 		}()
@@ -508,7 +530,7 @@ func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, 
 			log.Printf("Skipped (file does not exist): %s\n", file);
 			continue
 		}
-		reporter.writeOneHtmlFile(file, fileProfiles)
+		reporter.writeOneHtmlFile(file, fileProfiles, nil)
 		percent := i * 100 / nFiles
 		fmt.Printf("%3d%%\r", percent);
 		i++
@@ -530,23 +552,23 @@ func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FilePro
 			if len(fp.Filename) == 0 {
 				log.Println("Got empty filename from func profile")
 			} else {
-				exists[fp.Filename] = fileExists(file)
+				exists[fp.Filename] = fileExists(fp.Filename)
 			}
 			for _, caller := range(fp.Callers) {
 				if caller == nil { continue }
 				if len(caller.Filename) == 0 {
 					log.Println("Got empty filename from caller profile")
 				} else {
-					exists[caller.Filename] = fileExists(file)
+					exists[caller.Filename] = fileExists(caller.Filename)
 				}
 			}
 		}
 	}
 
 
-	//reporter.generateHtmlFilesInParallel(exists, fileProfiles)
+	reporter.generateHtmlFilesParallerWorkers(exists, fileProfiles, 8)
+	//reporter.generateHtmlFilesTightLoop(exists, fileProfiles)
 	//reporter.generateHtmlFilesOneByOne(exists, fileProfiles)
-	reporter.generateHtmlFilesParallelly(exists, fileProfiles)
 	return exists
 }
 
@@ -564,7 +586,12 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
 	exists := reporter.GenerateHtmlFiles(fileProfiles)
 	log.Println("Generating functions html report")
+	done := make(chan bool)
 	hw := NewHtmlWriter("", reporter.ReportDir + "/functions.html")
+	defer func(){
+		hw.writeToDiskAsync(done)
+		<-done
+	}()
 
 	hw.HtmlWithCssBodyOpen("style.css")
 	hw.Html("Functions sorted by exclusive time")
