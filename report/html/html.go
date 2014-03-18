@@ -587,7 +587,6 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	log.Println("Cross referencing function call metrics...")
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
 	exists := reporter.GenerateHtmlFiles(fileProfiles)
-	log.Println("Generating functions html report")
 	done := make(chan bool)
 	hw := NewHtmlWriter("", reporter.ReportDir + "/functions.html")
 	defer func(){
