@@ -54,11 +54,18 @@ type FunctionProfile struct {
 	Callers           FunctionCallerSlice `json:"callers"`
 }
 
+func removeParenthesis(name string) string {
+	l := len(name)
+	if name[l-2:] == "()" {
+		return name[:l-2]
+	}
+	return name
+}
 func (f *NameSpacedEntity) FullName() string {
 	if len(f.NameSpace) > 0 {
 		return f.NameSpace + "." + f.Name
 	}
-	return f.Name
+	return removeParenthesis(f.Name)
 }
 
 func (fc *FunctionProfile) CountCallingPlaces() int {
