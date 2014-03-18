@@ -56,7 +56,7 @@ type FunctionProfile struct {
 
 func removeParenthesis(name string) string {
 	l := len(name)
-	if name[l-2:] == "()" {
+	if l > 2 && name[l-2:] == "()" {
 		return name[:l-2]
 	}
 	return name
