@@ -237,6 +237,9 @@ func (profile FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSli
 func (fp FileProfile) injectCallerDurations(function *FunctionProfile) {
 	callers := function.Callers
 	for _, caller := range(callers) {
+		if caller.Filename == "eval()" {
+			continue
+		}
 
 		//fmt.Printf("%s:%d frequency: %d\n", caller.Filename, caller.At, caller.Frequency);
 		lines := fp[caller.Filename]
