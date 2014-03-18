@@ -119,6 +119,17 @@ func (ts TimeSpec) InMilliseconds() float64 {
 	return float64(ts.Sec) * 1000 + float64(ts.Nsec) / 1000000
 }
 
+func (ts *TimeSpec) IsLessThan(other *TimeSpec) bool {
+	if ts.Sec < other.Sec {
+		return true
+	}
+	if ts.Sec > other.Sec {
+		return false
+	}
+	return ts.Nsec < other.Nsec
+
+}
+
 func (n Counter) EmptyIfZero() interface{} {
 	if (n > 0) {
 		return n
@@ -167,7 +178,7 @@ func From(stream io.Reader) FileProfile {
 
 func (p FunctionCallerSlice) Len() int { return len(p) }
 func (p FunctionCallerSlice) Less(j, i int) bool {
-	if p[i].Frequency < p[j].Frequency {
+	if p[i].TotalDuration.IsLessThan(&p[j].TotalDuration) {
 		return true
 	}
 	return false
@@ -248,7 +259,7 @@ func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 			lineProfile.Function.Filename = file
 			lineProfile.Function.StartLine = Counter(lineNo)
 			calls = append(calls, lineProfile.Function)
-			//sort.Sort(lineProfile.Function.Callers)
+			sort.Sort(lineProfile.Function.Callers)
 			fileProfiles.injectCallerDurations(lineProfile.Function)
 		}
 	}
