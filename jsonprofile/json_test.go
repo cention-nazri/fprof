@@ -116,7 +116,6 @@ func TestDecodeFromBytes(tt *testing.T) {
 	fp := DecodeFromBytes(bytes)
 
 	logFailIf(fp == nil, "DecodeFromBytes must not return non nil")
-	fmt.Println(fp)
 	Lines := fp["/some/file"]
 	assertEqual(len(Lines), 2, "Must found 2 line profile records")
 	logFailIf(Lines[0] != nil, "Profile for line 0 must not exist")
