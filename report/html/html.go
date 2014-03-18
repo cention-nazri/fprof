@@ -11,6 +11,7 @@ import (
 	"html"
 	"sync"
 	"bytes"
+	"sort"
 )
 
 import "fprof/report"
@@ -284,6 +285,7 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 	var callTxt string
 	var avgTxt string
 	if lp != nil && len(lp.FunctionCalls) > 0 {
+		sort.Stable(lp.FunctionCalls)
 		for _, c := range(lp.FunctionCalls) {
 			callTxt = "in" // i18n unfriendly
 			avgTxt = ""
