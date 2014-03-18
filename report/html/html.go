@@ -131,7 +131,7 @@ func New(reportDir string) *HtmlReporter {
 	helper.CreateDir(reportDir)
 	reporter := HtmlReporter{}
 	reporter.ReportDir = reportDir
-	reporter.ProfileFile = helper.CreateFile(reportDir + "/profile.html")
+	//reporter.ProfileFile = helper.CreateFile(reportDir + "/profile.html")
 	return &reporter
 }
 
