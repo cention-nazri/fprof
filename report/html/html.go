@@ -483,7 +483,7 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	hw.HtmlWithCssBodyOpen("style.css")
 	hw.Html("Functions sorted by exclusive time")
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
-	hw.Th("Calls", "Places", "Files", "Exclusive", "Inclusive", "Function")
+	hw.Th("Calls", "Places", "Files", "Exclusive (ms)", "Inclusive (ms)", "Function")
 	na := "n/a"
 	//done := make(chan bool)
 	//nthreads := 0
