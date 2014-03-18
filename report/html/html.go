@@ -42,6 +42,14 @@ func NewHtmlWriter(sourceFile, htmlfile string) *HtmlWriter {
 	return &hw
 }
 
+func (hw *HtmlWriter) HiderLink(indent string, nHidden int) {
+	hw.write(`<div class="toggleHide">`)
+	hw.write(indent)
+	hw.write(fmt.Sprintf(`<a href="javascript:" onclick="toggleHide();return false;">Show %d more ...</a>`, nHidden))
+	hw.write(`</div>`)
+	hw.write(`<div class="hide">`)
+}
+
 func (hw *HtmlWriter) writeToDiskAsync(done chan bool) {
 	work := func() {
 		fmt.Fprintf(hw.realw, hw.w.String())
@@ -143,7 +151,7 @@ func (hw *HtmlWriter) ThOpen() { hw.begin("th") }
 func (hw *HtmlWriter) ThClose() { hw.end("th") }
 func (hw *HtmlWriter) TdOpen(attrs ...string) { hw.begin("td", attrs...) }
 func (hw *HtmlWriter) TdClose() { hw.end("td") }
-func (hw *HtmlWriter) DivOpen() { hw.begin("div") }
+func (hw *HtmlWriter) DivOpen(attrs ...string) { hw.begin("div", attrs...) }
 func (hw *HtmlWriter) DivClose() { hw.end("div") }
 func (hw *HtmlWriter) Th(v ...interface{}) { hw.repeatIn("th", v...) }
 func (hw *HtmlWriter) Td(v ...interface{}) { hw.repeatIn("td", v...) }
@@ -273,21 +281,42 @@ func getRelativePathTo(to, from string) string {
 }
 
 func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.FunctionProfile, indent string) {
+	hideThreshold := 10
 	nCallers := len(fp.Callers)
 	if nCallers == 0 {
 		hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
 	} else {
-		hw.commentln(indent, "Spent %vms within %v() which was called:", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
+		freqStr := ":"
+		if len(fp.Callers) > 1 {
+			freqStr = fmt.Sprintf(" %d times:", len(fp.Callers))
+		}
+		hw.comment(indent, "Spent %vms within %v() which was called%s", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName(), freqStr)
 		calleeFile := fp.Filename
 		calleeFile = reporter.htmlLineFilename(calleeFile)
-		for _, c := range(fp.Callers) {
+		startHideAt := 0
+		if len(fp.Callers) > hideThreshold {
+			startHideAt = 5
+		}
+		for i, c := range(fp.Callers) {
+			if startHideAt > 0 {
+				if i == startHideAt {
+					hw.HiderLink(indent, len(fp.Callers) - startHideAt)
+				}
+			}
 			callerFile, callerAt := c.Filename, c.At
 			callerFile = reporter.htmlLineFilename(callerFile)
-			hw.commentln(indent, "%d time(s) (%vms) by %s() at %s, avg %.3fms/call",
-				c.Frequency, c.TotalDuration.InMillisecondsStr(),
+			freqStr = "once"
+			if (c.Frequency > 1) {
+				freqStr = fmt.Sprintf("%d times", c.Frequency)
+			}
+			hw.commentln(indent, "%s (%vms) by %s() at %s, avg %.3fms/call",
+				freqStr, c.TotalDuration.InMillisecondsStr(),
 				c.FullName(),
 				htmlLink(calleeFile, fmt.Sprintf("line %d", callerAt), callerFile, callerAt),
 				c.TotalDuration.AverageInMilliseconds(c.Frequency))
+		}
+		if startHideAt > 0 {
+			hw.Html(`</div>`)
 		}
 	}
 }
@@ -297,9 +326,21 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 	/* FIXME populate function call metric from lp.Function.Callers */
 	var callTxt string
 	var avgTxt string
+	hideThreshold := 10
+	startHideAt := 0
 	if lp != nil && len(lp.FunctionCalls) > 0 {
 		sort.Stable(lp.FunctionCalls)
-		for _, c := range(lp.FunctionCalls) {
+
+		if len(lp.FunctionCalls) > hideThreshold {
+			startHideAt = 5
+		}
+		for i, c := range(lp.FunctionCalls) {
+			if startHideAt > 0 {
+				if i == startHideAt {
+					// TODO check for off by one
+					hw.HiderLink(indent, len(lp.FunctionCalls) - startHideAt)
+				}
+			}
 			callTxt = "in" // i18n unfriendly
 			avgTxt = ""
 			if c.CallsMade > 1 {
@@ -315,6 +356,9 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 				callTxt,
 				htmlLink(reporter.htmlLineFilename(hw.SourceFile), calleeFQN, calleeFile, calleeAt),
 				avgTxt)
+		}
+		if startHideAt > 0 {
+			hw.Html(`</div>`)
 		}
 	}
 }
@@ -449,6 +493,9 @@ td.s {
 .profile_note:hover {
 	color: black;
 	background-color: gray;
+}
+.hide {
+	display: none;
 }
 `)
 }
@@ -591,9 +638,31 @@ func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FilePro
 }
 
 func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string) {
+	js := `
+	function srcElement(e) {
+		e = e || window.event;
+		var targ = e.target || e.srcElement;
+		if (targ.nodeType == 3) targ = targ.parentNode; // defeat Safari bug
+		return targ;
+	}
+	function toggleHide(e) {
+		var el = srcElement(e);
+		var div = el.parentNode;
+		var hidden = div.nextSibling;
+		if (! hidden.style.display || hidden.style.display === 'none') {
+			el.origHTML = el.innerHTML;
+			hidden.style.display = 'block';
+			el.innerHTML = 'Hide'
+		} else {
+			hidden.style.display = 'none';
+			el.innerHTML = el.origHTML;
+		}
+	}
+	`
 	hw.HtmlOpen()
 	hw.HeadOpen()
 	hw.LinkCss(cssFile)
+	hw.writeln(`<script>`+js+`</script>`)
 	hw.HeadClose()
 	hw.BodyOpen()
 }
