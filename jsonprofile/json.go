@@ -21,7 +21,7 @@ type FunctionCall struct {
 	CallsMade Counter
 	TimeInFunctions TimeSpec
 }
-type FunctionCallSlice []FunctionCall
+type FunctionCallSlice []*FunctionCall
 
 type NameSpacedEntity struct {
 	NameSpace	  string	   `json:"namespace"`
@@ -177,6 +177,15 @@ func From(stream io.Reader) FileProfile {
 
 }
 
+/* Note we use j, i to sort descending in all Less() implementations */
+func (p FunctionCallSlice) Len() int { return len(p) }
+func (p FunctionCallSlice) Less(j, i int) bool {
+	return p[i].TimeInFunctions.IsLessThan(&p[j].TimeInFunctions)
+}
+func (p FunctionCallSlice) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
 func (p FunctionCallerSlice) Len() int { return len(p) }
 func (p FunctionCallerSlice) Less(j, i int) bool {
 	if p[i].TotalDuration.IsLessThan(&p[j].TotalDuration) {
@@ -221,7 +230,7 @@ func (p FunctionProfileSlice) Swap(i, j int) {
 func (profile FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSlice {
 
 	calls := profile.getFunctionCalls()
-	sort.Sort(calls)
+	sort.Stable(calls)
 	return calls
 }
 
@@ -240,7 +249,7 @@ func (fp FileProfile) injectCallerDurations(function *FunctionProfile) {
 			}
 
 			lp := lines[caller.At-1]
-			lp.FunctionCalls = append(lp.FunctionCalls, FunctionCall{function, caller.Frequency, caller.TotalDuration})
+			lp.FunctionCalls = append(lp.FunctionCalls, &FunctionCall{function, caller.Frequency, caller.TotalDuration})
 			lp.CallsMade += caller.Frequency
 			lp.TimeInFunctions.Add(caller.TotalDuration)
 		} else {
@@ -260,7 +269,7 @@ func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 			lineProfile.Function.Filename = file
 			lineProfile.Function.StartLine = Counter(lineNo)
 			calls = append(calls, lineProfile.Function)
-			sort.Sort(lineProfile.Function.Callers)
+			sort.Stable(lineProfile.Function.Callers)
 			fileProfiles.injectCallerDurations(lineProfile.Function)
 		}
 	}
