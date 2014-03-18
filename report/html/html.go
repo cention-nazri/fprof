@@ -200,10 +200,21 @@ func (reporter *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFil
 }
 
 func (reporter *HtmlReporter) htmlLineFilename(file string) string {
-	return report.FilesDir+file+"-line.html"
+	return report.FilesDir+"/"+file+"-line.html"
+}
+
+func isEval(f string) bool {
+	b := path.Base(f)
+	if len(b) >= 6 {
+		if b[0:6] == "eval()" {
+			return true
+		}
+	}
+	return false
 }
 
 func htmlLink(fromFile, funcName, toFile string, lineNo jsonprofile.Counter) string {
+	if isEval(toFile) { return funcName }
 	return fmt.Sprintf(`<a href="%s#%d">%s</a>`,  getRelativePathTo(toFile, fromFile), lineNo, funcName)
 }
 
