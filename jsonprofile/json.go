@@ -237,9 +237,9 @@ func (profile FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSli
 func (fp FileProfile) injectCallerDurations(function *FunctionProfile) {
 	callers := function.Callers
 	for _, caller := range(callers) {
-		if caller.Filename == "eval()" {
-			continue
-		}
+		//if caller.Filename == "eval()" {
+		//	continue
+		//}
 
 		//fmt.Printf("%s:%d frequency: %d\n", caller.Filename, caller.At, caller.Frequency);
 		lines := fp[caller.Filename]
@@ -265,6 +265,9 @@ func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 	calls := make(FunctionProfileSlice,50)
 
 	for file, lineProfiles := range fileProfiles {
+		//if file == "eval()" {
+		//	continue
+		//}
 		for lineNo, lineProfile := range lineProfiles {
 			if lineProfile == nil || lineProfile.Function == nil {
 				continue
