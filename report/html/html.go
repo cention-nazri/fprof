@@ -337,7 +337,7 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions", "Code")
 
 	if ! fileExists(file) {
-		log.Printf("Skipped (file does not exist): %s\n", file);
+		log.Printf("FIXME We should not reach here, file %s should exist\n", file)
 		return;
 	}
 	sourceFile, err := os.Open(file)
@@ -412,13 +412,13 @@ td.s {
 `)
 }
 
-func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile) {
+func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile) map[string]bool {
 	//helper.CreateFile(reporter.ReportDir +"/"+ report.FilesDir)
 
 	fileMap := make(map[string]bool)
 	done := make(chan bool)
 	for file, lineProfiles := range fileProfiles {
-		fileMap[file] = true
+		fileMap[file] = fileExists(file)
 		for _, v := range(lineProfiles) {
 			if v == nil { continue }
 			if v.Function == nil { continue }
@@ -426,30 +426,42 @@ func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FilePro
 			if len(fp.Filename) == 0 {
 				log.Println("Got empty filename from func profile")
 			} else {
-				fileMap[fp.Filename] = true
+				fileMap[fp.Filename] = fileExists(file)
 			}
 			for _, caller := range(fp.Callers) {
 				if caller == nil { continue }
 				if len(caller.Filename) == 0 {
 					log.Println("Got empty filename from caller profile")
 				} else {
-					fileMap[caller.Filename] = true
+					fileMap[caller.Filename] = fileExists(file)
 				}
 			}
 		}
 	}
 	log.Println("Generating source html files")
-	for filename, _ := range(fileMap) {
+	nFiles := 0
+	for file, exist := range(fileMap) {
+		if ! exist {
+			log.Printf("Skipped (file does not exist): %s\n", file);
+			continue
+		}
+		nFiles++
 		go func (file string, fileProfile jsonprofile.FileProfile) {
 			reporter.writeOneHtmlFile(file, fileProfiles)
 			// fmt.Println(file)
 			done <- true
-		}(filename, fileProfiles)
+		}(file, fileProfiles)
 	}
 
-	for i := 0; i < len(fileProfiles); i++ {
+	for i := 0; i < nFiles; i++ {
+		//percent := i * 100 / nFiles
+		//if percent%5 == 0 {
+		//	fmt.Printf("\r%d%%", percent);
+		//	os.Stdout.Sync();
+		//}
 		<-done
 	}
+	return fileMap
 }
 
 func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string) {
@@ -464,7 +476,7 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	reporter.GenerateCssFile()
 	log.Println("Cross referencing function call metrics...")
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
-	reporter.GenerateHtmlFiles(fileProfiles)
+	exists := reporter.GenerateHtmlFiles(fileProfiles)
 	log.Println("Generating functions html report")
 	hw := NewHtmlWriter("", reporter.ReportDir + "/functions.html")
 
@@ -476,6 +488,9 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	//done := make(chan bool)
 	//nthreads := 0
 	for _, fc := range(functionCalls) {
+		if fc == nil || ! exists[fc.Filename] {
+			continue
+		}
 		hw.TrOpen()
 		if fc == nil {
 			hw.Td(na, na, na, na, na)
