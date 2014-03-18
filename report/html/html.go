@@ -9,7 +9,7 @@ import (
 	"strings"
 	"path"
 	"html"
-	_ "sort"
+	"sync"
 )
 
 import "fprof/report"
@@ -412,8 +412,87 @@ td.s {
 `)
 }
 
+func (reporter *HtmlReporter) generateHtmlFilesParallelly(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
+	nFiles := 0
+	for  _, exist := range(exists) {
+		if exist {
+			nFiles++
+		}
+	}
+
+	done := make(chan bool, nFiles)
+	defer close(done)
+
+	log.Printf("Generating %d source html files\n", nFiles)
+
+	for file, exist := range(exists) {
+		if ! exist {
+			log.Printf("Skipped (file does not exist): %s\n", file);
+			continue
+		}
+		go func(file string) {
+			reporter.writeOneHtmlFile(file, fileProfiles)
+			done<-true
+		}(file)
+	}
+
+	for i := 1; i <= nFiles; i++ {
+		<-done
+	}
+	fmt.Println("Done")
+}
+
 func (reporter *HtmlReporter) generateHtmlFilesInParallel(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
-	done := make(chan bool)
+	nFiles := 0
+	for  _, exist := range(exists) {
+		if exist {
+			nFiles++
+		}
+	}
+
+	type Job struct {
+		file string
+		// TODO use lineprofiles instead
+		fileProfiles jsonprofile.FileProfile
+	}
+
+	tasks := make(chan *Job, nFiles)
+	defer close(tasks)
+	done := make(chan bool, nFiles)
+	defer close(done)
+
+	nWorkers := 8
+	log.Printf("Generating %d source html files\n", nFiles)
+	var wg sync.WaitGroup
+
+	for i:=0; i<nWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			for j := range tasks {
+				reporter.writeOneHtmlFile(j.file, j.fileProfiles)
+				done<-true
+			}
+			wg.Done()
+		}()
+	}
+
+	for file, exist := range(exists) {
+		if ! exist {
+			log.Printf("Skipped (file does not exist): %s\n", file);
+			continue
+		}
+		tasks<- &Job{file, fileProfiles}
+	}
+
+	for i := 1; i <= nFiles; i++ {
+		<-done
+		percent := i * 100 / nFiles
+		fmt.Printf("%3d%%\r", percent);
+	}
+	fmt.Println("")
+}
+
+func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
 	nFiles := 0
 	for  _, exist := range(exists) {
 		if exist {
@@ -422,26 +501,20 @@ func (reporter *HtmlReporter) generateHtmlFilesInParallel(exists map[string]bool
 	}
 
 	log.Printf("Generating %d source html files\n", nFiles)
+
+	i := 1
 	for file, exist := range(exists) {
 		if ! exist {
 			log.Printf("Skipped (file does not exist): %s\n", file);
 			continue
 		}
-		go func (file string, fileProfile jsonprofile.FileProfile) {
-			reporter.writeOneHtmlFile(file, fileProfiles)
-			// fmt.Println(file)
-			done <- true
-		}(file, fileProfiles)
+		reporter.writeOneHtmlFile(file, fileProfiles)
+		percent := i * 100 / nFiles
+		fmt.Printf("%3d%%\r", percent);
+		i++
 	}
 
-	for i := 0; i < nFiles; i++ {
-		//percent := i * 100 / nFiles
-		//if percent%5 == 0 {
-		//	fmt.Printf("\r%d%%", percent);
-		//	os.Stdout.Sync();
-		//}
-		<-done
-	}
+	fmt.Println("")
 }
 
 func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile) map[string]bool {
@@ -471,7 +544,9 @@ func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FilePro
 	}
 
 
-	reporter.generateHtmlFilesInParallel(exists, fileProfiles)
+	//reporter.generateHtmlFilesInParallel(exists, fileProfiles)
+	//reporter.generateHtmlFilesOneByOne(exists, fileProfiles)
+	reporter.generateHtmlFilesParallelly(exists, fileProfiles)
 	return exists
 }
 
