@@ -51,9 +51,13 @@ func GetLineCount(filename string) int {
 
 func RunCommand(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
 	err := cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return cmd.Wait()
 }
