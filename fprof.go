@@ -19,6 +19,7 @@ import "fprof/jsonprofile"
 var reportDir = "fprof"
 var reportType = "txt"
 var browser = ""
+var jsonfile = "-"
 
 func main() {
 	var pBrowser = flag.String("b", browser, "Open functions.html in the given browser")
@@ -35,6 +36,14 @@ func main() {
 	}
 	if *pBrowser != browser {
 		browser = *pBrowser
+	}
+
+	args := flag.Args()
+	if len(args) == 1 {
+		jsonfile = args[0]
+		if jsonfile != "-" && reportDir == "fprof" {
+			reportDir = jsonfile + ".d"
+		}
 	}
 
 	reportFromJson()
@@ -55,7 +64,15 @@ func openInBrowser(htmlfile string) {
 }
 
 func reportFromJson() {
-	profile := jsonprofile.From(os.Stdin)
+	in := os.Stdin
+	if jsonfile != "-" {
+		var err error
+		in, err = os.Open(jsonfile)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	profile := jsonprofile.From(in)
 
 	var reporter report.Reporter
 	reporter = html.New(reportDir)
