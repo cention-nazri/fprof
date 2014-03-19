@@ -5,12 +5,20 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"time"
 )
 
 import "encoding/json"
 
 const ONE_BILLION = 1000000000
 const ONE_MILLION = 1000000
+
+type Profile struct {
+	Start TimeSpec             `json:"start"`
+	Stop  TimeSpec             `json:"stop"`
+	Duration TimeSpec          `json:"duration"`
+	FileProfileMap FileProfile `json:"files"`
+}
 
 type FileProfile map[string][]*LineProfile
 
@@ -120,6 +128,14 @@ func (ts TimeSpec) InMilliseconds() float64 {
 	return float64(ts.Sec) * 1000 + float64(ts.Nsec) / 1000000
 }
 
+func (ts TimeSpec) Time() string {
+	return ts.String()
+}
+
+func (ts TimeSpec) String() string {
+	return time.Unix(ts.Sec, ts.Nsec).String()
+}
+
 func (ts *TimeSpec) IsLessThan(other *TimeSpec) bool {
 	if ts.Sec < other.Sec {
 		return true
@@ -149,18 +165,19 @@ func (ts TimeSpec) InSeconds() float64 {
 	return float64(ts.Sec) + float64(ts.Nsec) / 1000000000
 }
 
-func DecodeFromBytes(b []byte) FileProfile {
-	var o FileProfile
+func DecodeFromBytes(b []byte) *Profile {
+	var o Profile
 
 	err := json.Unmarshal(b, &o)
 	if err != nil {
+		log.Fatal(err)
 		return nil
 	}
-	return o
+	return &o
 }
 
-func From(stream io.Reader) FileProfile {
-	var o FileProfile
+func From(stream io.Reader) *Profile {
+	var o Profile
 
 	r := json.NewDecoder(stream)
 	if r == nil {
@@ -173,7 +190,7 @@ func From(stream io.Reader) FileProfile {
 		log.Print(err)
 		return nil
 	}
-	return o
+	return &o
 
 }
 

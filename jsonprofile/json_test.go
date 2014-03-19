@@ -85,6 +85,7 @@ func TestDecodeFunctionCallers(tt *testing.T) {
 func TestDecodeFromBytes(tt *testing.T) {
 	t = tt
 	bytes := []byte(`{
+	"files": {
 		"/some/file" : [
 			null,
 			{
@@ -111,11 +112,27 @@ func TestDecodeFromBytes(tt *testing.T) {
 				}
 			}
 			]
+	},
+	"start": {
+		"nsec": 22,
+		"sec": 42
+	},
+	"stop": {
+		"nsec": 22,
+		"sec": 52
+	},
+	"duration": {
+		"nsec": 0,
+		"sec": 10
 	}
-	`)
-	fp := DecodeFromBytes(bytes)
+	}`)
+	p := DecodeFromBytes(bytes)
+	logFailIf(p == nil, "DecodeFromBytes must return profile pointer")
+	logFailIf(p.Start.Nsec != 22 && p.Start.Sec != 42, "Start time")
+	logFailIf(p.Stop.Nsec != 22 && p.Stop.Sec != 52, "Stop time")
+	logFailIf(p.Duration.Nsec != 0 && p.Duration.Sec != 10, "Stop time")
 
-	logFailIf(fp == nil, "DecodeFromBytes must not return non nil")
+	fp := p.FileProfileMap
 	Lines := fp["/some/file"]
 	assertEqual(len(Lines), 2, "Must found 2 line profile records")
 	logFailIf(Lines[0] != nil, "Profile for line 0 must not exist")

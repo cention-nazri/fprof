@@ -667,7 +667,8 @@ func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string) {
 	hw.BodyOpen()
 }
 
-func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfile) {
+func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
+	fileProfiles := p.FileProfileMap
 	reporter.GenerateCssFile()
 	log.Println("Cross referencing function call metrics...")
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
@@ -680,6 +681,9 @@ func (reporter *HtmlReporter) ReportFunctions(fileProfiles jsonprofile.FileProfi
 	}()
 
 	hw.HtmlWithCssBodyOpen("style.css")
+	hw.Div("Start: " + p.Start.Time())
+	hw.Div("Stop: " + p.Stop.Time())
+	hw.Div("Duration: " + p.Duration.InMillisecondsStr() + "ms")
 	hw.Html("Functions sorted by exclusive time")
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
 	hw.Th("Calls", "Places", "Files", "Exclusive (ms)", "Inclusive (ms)", "Function")

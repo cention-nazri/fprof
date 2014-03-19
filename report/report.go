@@ -23,7 +23,7 @@ type Reporter interface {
 	PrintMetrics(filesDir string, timings LineMetric, filenameAndLine string)
 	Prolog(header string)
 	PopulateProfile(profileFor LineMetricForFiles, record string)
-	ReportFunctions(jsonprofile.FileProfile)
+	ReportFunctions(*jsonprofile.Profile)
 	Epilog()
 }
 

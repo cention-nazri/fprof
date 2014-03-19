@@ -36,11 +36,11 @@ func main() {
 }
 
 func reportFromJson() {
-	fileProfiles := jsonprofile.From(os.Stdin)
+	profile := jsonprofile.From(os.Stdin)
 
 	var reporter report.Reporter
 	reporter = html.New(reportDir)
-	reporter.ReportFunctions(fileProfiles)
+	reporter.ReportFunctions(profile)
 }
 
 func reportFromTxt() {
