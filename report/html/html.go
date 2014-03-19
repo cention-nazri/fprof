@@ -208,7 +208,7 @@ func (reporter *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFil
 }
 
 func (reporter *HtmlReporter) htmlLineFilename(file string) string {
-	return report.FilesDir+"/"+file+"-line.html"
+	return report.FilesDir+"/"+file+".html"
 }
 
 func isEval(f string) bool {
