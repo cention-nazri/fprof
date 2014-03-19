@@ -686,7 +686,7 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	hw.Div("Duration: " + p.Duration.InMillisecondsStr() + "ms")
 	hw.Html("Functions sorted by exclusive time")
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
-	hw.Th("Calls", "Places", "Files", "Exclusive (ms)", "Inclusive (ms)", "Function")
+	hw.Th("Calls", "Places", "Files", "Exclusive (ms)", "Inclusive (ms)", "Incl/Excl %%", "Function")
 	na := "n/a"
 	//done := make(chan bool)
 	//nthreads := 0
@@ -696,15 +696,23 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 		}
 		hw.TrOpen()
 		if fc == nil {
-			hw.Td(na, na, na, na, na)
+			hw.Td(na, na, na, na, na, na)
 			hw.TdOpen(`class="s"`)
 			hw.write(na)
 		} else {
+			ieRatio := ""
+			inclMS := fc.InclusiveDuration.InMilliseconds()
+			exclMS := fc.ExclusiveDuration.InMilliseconds()
+			if inclMS > 0 {
+				ieRatio = fmt.Sprintf("%3.1f", exclMS * 100 /inclMS)
+			}
 			hw.Td(fc.Hits,
 				fc.CountCallingPlaces(),
 				fc.CountCallingFiles(),
 				fc.ExclusiveDuration.NonZeroMsOrNone(),
-				fc.InclusiveDuration.NonZeroMsOrNone())
+				fc.InclusiveDuration.NonZeroMsOrNone(),
+				ieRatio)
+
 			hw.TdOpen(`class="s"`)
 			//if fileProfiles[fc.Filename] == nil {
 			//	go func (file string, lineProfiles []*jsonprofile.LineProfile) {
