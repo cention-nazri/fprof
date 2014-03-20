@@ -287,8 +287,9 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 		hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
 	} else {
 		freqStr := ":"
-		if len(fp.Callers) > 1 {
-			freqStr = fmt.Sprintf(" %d times:", len(fp.Callers))
+		nCalls := fp.Callers.Total()
+		if nCalls > 1 {
+			freqStr = fmt.Sprintf(" %d times:", nCalls)
 		}
 		hw.comment(indent, "Spent %vms within %v() which was called%s", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName(), freqStr)
 		calleeFile := fp.Filename

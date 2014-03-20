@@ -203,6 +203,13 @@ func (p FunctionCallSlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
+func (p FunctionCallerSlice) Total() Counter {
+	var nCalls Counter
+	for _, caller := range(p) {
+		nCalls += caller.Frequency
+	}
+	return nCalls
+}
 func (p FunctionCallerSlice) Len() int { return len(p) }
 func (p FunctionCallerSlice) Less(j, i int) bool {
 	if p[i].TotalDuration.IsLessThan(&p[j].TotalDuration) {
