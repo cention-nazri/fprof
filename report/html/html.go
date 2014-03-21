@@ -703,14 +703,14 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 		} else {
 			ieRatio := ""
 			inclMS := fc.InclusiveDuration.InMilliseconds()
-			exclMS := fc.ExclusiveDuration.InMilliseconds()
+			exclMS := fc.OwnTime.InMilliseconds()
 			if inclMS > 0 {
 				ieRatio = fmt.Sprintf("%3.1f", exclMS * 100 /inclMS)
 			}
 			hw.Td(fc.Hits,
 				fc.CountCallingPlaces(),
 				fc.CountCallingFiles(),
-				fc.ExclusiveDuration.NonZeroMsOrNone(),
+				fc.OwnTime.NonZeroMsOrNone(),
 				fc.InclusiveDuration.NonZeroMsOrNone(),
 				ieRatio)
 

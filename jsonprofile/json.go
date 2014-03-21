@@ -58,6 +58,7 @@ type FunctionProfile struct {
 	HitCount
 	ExclusiveDuration TimeSpec         `json:"exclusive_duration"`
 	InclusiveDuration TimeSpec         `json:"inclusive_duration"`
+	OwnTime		  TimeSpec
 	IsNative          bool             `json:"is_native"`
 	Callers           FunctionCallerSlice `json:"callers"`
 }
@@ -109,6 +110,20 @@ func (ts *TimeSpec) AverageInMilliseconds(n Counter) float64 {
 	var total float64
 	total = float64(ts.Sec * ONE_BILLION + ts.Nsec) / ONE_MILLION
 	return float64(total) / float64(n)
+}
+
+func (f *FunctionProfile) CalculateOwnTime() {
+	f.OwnTime = f.InclusiveDuration
+	f.OwnTime.Subtract(f.ExclusiveDuration)
+}
+
+func (ts *TimeSpec) Subtract(other TimeSpec) {
+	if (ts.Nsec < other.Nsec) {
+		ts.Sec--
+		ts.Nsec += ONE_BILLION
+	}
+	ts.Nsec = ts.Nsec - other.Nsec
+	ts.Sec = ts.Sec - other.Sec
 }
 
 func (ts *TimeSpec) Add(other TimeSpec) {
@@ -234,14 +249,14 @@ func (p FunctionProfileSlice) Less(j, i int) bool {
 		return true
 	}
 
-	if p[i].ExclusiveDuration.Sec < p[j].ExclusiveDuration.Sec {
+	if p[i].OwnTime.Sec < p[j].OwnTime.Sec {
 		return true
-	} else if p[i].ExclusiveDuration.Sec > p[j].ExclusiveDuration.Sec {
+	} else if p[i].OwnTime.Sec > p[j].OwnTime.Sec {
 		return false
 	}
-	if p[i].ExclusiveDuration.Nsec < p[j].ExclusiveDuration.Nsec {
+	if p[i].OwnTime.Nsec < p[j].OwnTime.Nsec {
 		return true
-	} else if p[i].ExclusiveDuration.Nsec > p[j].ExclusiveDuration.Nsec {
+	} else if p[i].OwnTime.Nsec > p[j].OwnTime.Nsec {
 		return false
 	}
 	return true
@@ -296,11 +311,13 @@ func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 			if lineProfile == nil || lineProfile.Function == nil {
 				continue
 			}
-			lineProfile.Function.Filename = file
-			lineProfile.Function.StartLine = Counter(lineNo)
-			calls = append(calls, lineProfile.Function)
-			sort.Stable(lineProfile.Function.Callers)
-			fileProfiles.injectCallerDurations(lineProfile.Function)
+			f := lineProfile.Function
+			f.Filename = file
+			f.StartLine = Counter(lineNo)
+			f.CalculateOwnTime()
+			calls = append(calls, f)
+			sort.Stable(f.Callers)
+			fileProfiles.injectCallerDurations(f)
 		}
 	}
 	return calls
