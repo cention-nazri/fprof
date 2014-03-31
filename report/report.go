@@ -3,8 +3,8 @@ package report
 import (
 	"io"
 	"log"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 import "fprof/jsonprofile"
@@ -15,7 +15,7 @@ type LineMetric string
 type LineMetricForFiles map[string][]LineMetric
 
 type Report struct {
-	ReportDir string
+	ReportDir   string
 	ProfileFile io.Writer
 }
 

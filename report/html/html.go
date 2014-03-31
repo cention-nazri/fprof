@@ -1,17 +1,17 @@
 package html
 
 import (
-	"fmt"
-	"log"
-	"io"
-	"os"
 	"bufio"
-	"strings"
-	"path"
-	"html"
-	"sync"
 	"bytes"
+	"fmt"
+	"html"
+	"io"
+	"log"
+	"os"
+	"path"
 	"sort"
+	"strings"
+	"sync"
 )
 
 import "fprof/report"
@@ -25,11 +25,11 @@ type HtmlReporter struct {
 }
 
 type HtmlWriter struct {
-	SourceFile string
+	SourceFile   string
 	HtmlFilename string
-	realw io.Writer
-	indent int
-	w *bytes.Buffer
+	realw        io.Writer
+	indent       int
+	w            *bytes.Buffer
 }
 
 func NewHtmlWriter(sourceFile, htmlfile string) *HtmlWriter {
@@ -38,7 +38,7 @@ func NewHtmlWriter(sourceFile, htmlfile string) *HtmlWriter {
 		helper.CreateFile(htmlfile),
 		0,
 		new(bytes.Buffer),
-		}
+	}
 	return &hw
 }
 
@@ -59,11 +59,10 @@ func (hw *HtmlWriter) writeToDiskAsync(done chan bool) {
 	} else {
 		go func() {
 			work()
-			done<- true
+			done <- true
 		}()
 	}
 }
-
 
 func (hw *HtmlWriter) spaces() {
 	str := ""
@@ -84,7 +83,7 @@ func (hw *HtmlWriter) writeln(v interface{}) {
 
 func getFirstWhiteSpaces(str string) string {
 
-	for i, v := range(str) {
+	for i, v := range str {
 		if v != ' ' && v != '\t' {
 			return str[0:i]
 		}
@@ -93,7 +92,7 @@ func getFirstWhiteSpaces(str string) string {
 }
 
 func (hw *HtmlWriter) commentln(indent, format string, args ...interface{}) {
-	hw.comment(indent, format + "\n", args...)
+	hw.comment(indent, format+"\n", args...)
 }
 
 func (hw *HtmlWriter) comment(indent, format string, args ...interface{}) {
@@ -106,8 +105,8 @@ func (hw *HtmlWriter) begin(el string, attrs ...string) {
 	//hw.writeln("")
 	hw.spaces()
 	hw.write("<" + el)
-	for _, v := range(attrs) {
-		hw.write(" "+v)
+	for _, v := range attrs {
+		hw.write(" " + v)
 	}
 	hw.write(">")
 	hw.indent++
@@ -119,7 +118,7 @@ func (hw *HtmlWriter) end(el string) {
 }
 
 func (hw *HtmlWriter) Html(v ...interface{}) {
-	for _, e := range(v) {
+	for _, e := range v {
 		hw.write(e)
 	}
 }
@@ -131,32 +130,34 @@ func (hw *HtmlWriter) in(el string, v interface{}) {
 }
 
 func (hw *HtmlWriter) repeatIn(el string, items ...interface{}) {
-	for _, v := range(items) {
+	for _, v := range items {
 		hw.in(el, v)
 	}
 }
 
-func (hw *HtmlWriter) HtmlOpen() { hw.begin("html") }
+func (hw *HtmlWriter) HtmlOpen()  { hw.begin("html") }
 func (hw *HtmlWriter) HtmlClose() { hw.end("html") }
-func (hw *HtmlWriter) HeadOpen() { hw.begin("head") }
-func (hw *HtmlWriter) LinkCss(cssFile string) { hw.begin("link", `rel="stylesheet"`, `type="text/css"`, fmt.Sprintf(`href="%s"`, cssFile)) }
-func (hw *HtmlWriter) HeadClose() { hw.end("head") }
-func (hw *HtmlWriter) BodyOpen() { hw.begin("body") }
-func (hw *HtmlWriter) BodyClose() { hw.end("body") }
+func (hw *HtmlWriter) HeadOpen()  { hw.begin("head") }
+func (hw *HtmlWriter) LinkCss(cssFile string) {
+	hw.begin("link", `rel="stylesheet"`, `type="text/css"`, fmt.Sprintf(`href="%s"`, cssFile))
+}
+func (hw *HtmlWriter) HeadClose()                { hw.end("head") }
+func (hw *HtmlWriter) BodyOpen()                 { hw.begin("body") }
+func (hw *HtmlWriter) BodyClose()                { hw.end("body") }
 func (hw *HtmlWriter) TableOpen(attrs ...string) { hw.begin("table", attrs...) }
-func (hw *HtmlWriter) TableClose() { hw.end("table") }
-func (hw *HtmlWriter) TrOpen() { hw.begin("tr") }
-func (hw *HtmlWriter) TrClose() { hw.end("tr") }
-func (hw *HtmlWriter) ThOpen() { hw.begin("th") }
-func (hw *HtmlWriter) ThClose() { hw.end("th") }
-func (hw *HtmlWriter) TdOpen(attrs ...string) { hw.begin("td", attrs...) }
-func (hw *HtmlWriter) TdClose() { hw.end("td") }
-func (hw *HtmlWriter) DivOpen(attrs ...string) { hw.begin("div", attrs...) }
-func (hw *HtmlWriter) DivClose() { hw.end("div") }
-func (hw *HtmlWriter) Th(v ...interface{}) { hw.repeatIn("th", v...) }
-func (hw *HtmlWriter) Td(v ...interface{}) { hw.repeatIn("td", v...) }
-func (hw *HtmlWriter) Tr(v ...interface{}) { hw.repeatIn("tr", v...) }
-func (hw *HtmlWriter) Div(v ...interface{}) { hw.repeatIn("div", v...) }
+func (hw *HtmlWriter) TableClose()               { hw.end("table") }
+func (hw *HtmlWriter) TrOpen()                   { hw.begin("tr") }
+func (hw *HtmlWriter) TrClose()                  { hw.end("tr") }
+func (hw *HtmlWriter) ThOpen()                   { hw.begin("th") }
+func (hw *HtmlWriter) ThClose()                  { hw.end("th") }
+func (hw *HtmlWriter) TdOpen(attrs ...string)    { hw.begin("td", attrs...) }
+func (hw *HtmlWriter) TdClose()                  { hw.end("td") }
+func (hw *HtmlWriter) DivOpen(attrs ...string)   { hw.begin("div", attrs...) }
+func (hw *HtmlWriter) DivClose()                 { hw.end("div") }
+func (hw *HtmlWriter) Th(v ...interface{})       { hw.repeatIn("th", v...) }
+func (hw *HtmlWriter) Td(v ...interface{})       { hw.repeatIn("td", v...) }
+func (hw *HtmlWriter) Tr(v ...interface{})       { hw.repeatIn("tr", v...) }
+func (hw *HtmlWriter) Div(v ...interface{})      { hw.repeatIn("div", v...) }
 
 func New(reportDir string) *HtmlReporter {
 	helper.CreateDir(reportDir)
@@ -168,21 +169,21 @@ func New(reportDir string) *HtmlReporter {
 
 func (reporter *HtmlReporter) Prolog(header string) {
 	fmt.Fprint(reporter.ProfileFile, "<table><tr>")
-	for _, head := range(strings.Fields(header)) {
+	for _, head := range strings.Fields(header) {
 		fmt.Fprintf(reporter.ProfileFile, "<th>%v</th>", head)
 	}
-	fmt.Fprintln(reporter.ProfileFile, "<th></th></tr>");
+	fmt.Fprintln(reporter.ProfileFile, "<th></th></tr>")
 }
 
 func (reporter *HtmlReporter) PrintMetrics(filesDir string, timings report.LineMetric, filenameAndLine string) {
-	fmt.Fprint(reporter.ProfileFile, "<tr>");
+	fmt.Fprint(reporter.ProfileFile, "<tr>")
 	nPrinted := 0
-	for _, metric := range(strings.Fields(string(timings))) {
+	for _, metric := range strings.Fields(string(timings)) {
 		fmt.Fprintf(reporter.ProfileFile, "<td>%v</td>", metric)
 		nPrinted++
 	}
 	for i := nPrinted; i < 5; i++ {
-		fmt.Fprint(reporter.ProfileFile, "<td></td>");
+		fmt.Fprint(reporter.ProfileFile, "<td></td>")
 	}
 	fmt.Fprintf(reporter.ProfileFile, "<td>%v%v</td></tr>\n", filesDir, filenameAndLine)
 }
@@ -208,7 +209,7 @@ func (reporter *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFil
 }
 
 func (reporter *HtmlReporter) htmlLineFilename(file string) string {
-	return report.FilesDir+"/"+file+".html"
+	return report.FilesDir + "/" + file + ".html"
 }
 
 func isEval(f string) bool {
@@ -222,8 +223,10 @@ func isEval(f string) bool {
 }
 
 func htmlLink(fromFile, funcName, toFile string, lineNo jsonprofile.Counter) string {
-	if isEval(toFile) { return `<span title="Called from eval()"><i>` + funcName + `</i></span>` }
-	return fmt.Sprintf(`<a href="%s#%d">%s</a>`,  getRelativePathTo(toFile, fromFile), lineNo, funcName)
+	if isEval(toFile) {
+		return `<span title="Called from eval()"><i>` + funcName + `</i></span>`
+	}
+	return fmt.Sprintf(`<a href="%s#%d">%s</a>`, getRelativePathTo(toFile, fromFile), lineNo, funcName)
 }
 
 func pathToRoot(file string) string {
@@ -298,16 +301,16 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 		if len(fp.Callers) > hideThreshold {
 			startHideAt = 5
 		}
-		for i, c := range(fp.Callers) {
+		for i, c := range fp.Callers {
 			if startHideAt > 0 {
 				if i == startHideAt {
-					hw.HiderLink(indent, len(fp.Callers) - startHideAt)
+					hw.HiderLink(indent, len(fp.Callers)-startHideAt)
 				}
 			}
 			callerFile, callerAt := c.Filename, c.At
 			callerFile = reporter.htmlLineFilename(callerFile)
 			freqStr = "once"
-			if (c.Frequency > 1) {
+			if c.Frequency > 1 {
 				freqStr = fmt.Sprintf("%d times", c.Frequency)
 			}
 			hw.commentln(indent, "%s (%vms) by %s() at %s, avg %.3fms/call",
@@ -335,11 +338,11 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 		if len(lp.FunctionCalls) > hideThreshold {
 			startHideAt = 5
 		}
-		for i, c := range(lp.FunctionCalls) {
+		for i, c := range lp.FunctionCalls {
 			if startHideAt > 0 {
 				if i == startHideAt {
 					// TODO check for off by one
-					hw.HiderLink(indent, len(lp.FunctionCalls) - startHideAt)
+					hw.HiderLink(indent, len(lp.FunctionCalls)-startHideAt)
 				}
 			}
 			callTxt = "in" // i18n unfriendly
@@ -350,7 +353,7 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 			}
 
 			calleeFQN := c.To.FullName()
-			calleeFile, calleeAt := c.To.Filename, c.To.StartLine - 1
+			calleeFile, calleeAt := c.To.Filename, c.To.StartLine-1
 			calleeFile = reporter.htmlLineFilename(calleeFile)
 			hw.commentln(indent, "Spent %vms %s %s()%s",
 				c.TimeInFunctions.InMillisecondsStr(),
@@ -379,9 +382,8 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		indent = getFirstWhiteSpaces(sourceLine)
 	}
 
-
 	if lp == nil {
-		hw.Td("","","", "")
+		hw.Td("", "", "", "")
 		hw.TdOpen(`class="s"`)
 	} else {
 		hw.Td(lp.Hits, lp.TotalDuration.InMillisecondsStr())
@@ -390,7 +392,7 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 	}
 
 	/* Function definition */
-	if fp != nil  {
+	if fp != nil {
 		reporter.showCallers(hw, fp, indent)
 	}
 	if hasSourceLine {
@@ -413,7 +415,7 @@ func fileExists(file string) bool {
 }
 
 func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile, done chan bool) {
-	htmlfile := reporter.ReportDir +"/"+ reporter.htmlLineFilename(file)
+	htmlfile := reporter.ReportDir + "/" + reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
 	hw := NewHtmlWriter(file, htmlfile)
 	defer hw.writeToDiskAsync(done)
@@ -422,9 +424,9 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
 	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions", "Code")
 
-	if ! fileExists(file) {
+	if !fileExists(file) {
 		log.Printf("FIXME We should not reach here, file %s should exist\n", file)
-		return;
+		return
 	}
 	sourceFile, err := os.Open(file)
 	if err != nil {
@@ -441,7 +443,7 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 	for i, lp := range lineProfiles {
 		lineNo := i + 1
 		fp = nil
-		if i + 1 < len(lineProfiles) {
+		if i+1 < len(lineProfiles) {
 			if lineProfiles[i+1] != nil {
 				fp = lineProfiles[i+1].Function
 				//log.Println("function:",fp)
@@ -461,7 +463,7 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 func (reporter *HtmlReporter) GenerateCssFile() {
 	css := helper.CreateFile(reporter.ReportDir + "/style.css")
 	fmt.Fprint(css,
-`
+		`
 body {
 	font-family: sans-serif;
 }
@@ -503,7 +505,7 @@ td.s {
 
 func (reporter *HtmlReporter) generateHtmlFilesTightLoop(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
 	nFiles := 0
-	for  _, exist := range(exists) {
+	for _, exist := range exists {
 		if exist {
 			nFiles++
 		}
@@ -514,9 +516,9 @@ func (reporter *HtmlReporter) generateHtmlFilesTightLoop(exists map[string]bool,
 
 	log.Printf("Generating %d source html files\n", nFiles)
 
-	for file, exist := range(exists) {
-		if ! exist {
-			log.Printf("Skipped (file does not exist): %s\n", file);
+	for file, exist := range exists {
+		if !exist {
+			log.Printf("Skipped (file does not exist): %s\n", file)
 			continue
 		}
 		go func(file string) {
@@ -527,14 +529,14 @@ func (reporter *HtmlReporter) generateHtmlFilesTightLoop(exists map[string]bool,
 	for i := 1; i <= nFiles; i++ {
 		<-done
 		percent := i * 100 / nFiles
-		fmt.Printf("%3d%%\r", percent);
+		fmt.Printf("%3d%%\r", percent)
 	}
 	fmt.Println("Done")
 }
 
 func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string]bool, fileProfiles jsonprofile.FileProfile, nWorkers int) {
 	nFiles := 0
-	for  _, exist := range(exists) {
+	for _, exist := range exists {
 		if exist {
 			nFiles++
 		}
@@ -554,7 +556,7 @@ func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string
 	log.Printf("Generating %d source html files\n", nFiles)
 	var wg sync.WaitGroup
 
-	for i:=0; i<nWorkers; i++ {
+	for i := 0; i < nWorkers; i++ {
 		wg.Add(1)
 		go func() {
 			for j := range tasks {
@@ -564,25 +566,25 @@ func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string
 		}()
 	}
 
-	for file, exist := range(exists) {
-		if ! exist {
-			log.Printf("Skipped (file does not exist): %s\n", file);
+	for file, exist := range exists {
+		if !exist {
+			log.Printf("Skipped (file does not exist): %s\n", file)
 			continue
 		}
-		tasks<- &Job{file, fileProfiles}
+		tasks <- &Job{file, fileProfiles}
 	}
 
 	for i := 1; i <= nFiles; i++ {
 		<-done
 		percent := i * 100 / nFiles
-		fmt.Printf("%3d%%\r", percent);
+		fmt.Printf("%3d%%\r", percent)
 	}
 	fmt.Println("")
 }
 
 func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
 	nFiles := 0
-	for  _, exist := range(exists) {
+	for _, exist := range exists {
 		if exist {
 			nFiles++
 		}
@@ -591,14 +593,14 @@ func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, 
 	log.Printf("Generating %d source html files\n", nFiles)
 
 	i := 1
-	for file, exist := range(exists) {
-		if ! exist {
-			log.Printf("Skipped (file does not exist): %s\n", file);
+	for file, exist := range exists {
+		if !exist {
+			log.Printf("Skipped (file does not exist): %s\n", file)
 			continue
 		}
 		reporter.writeOneHtmlFile(file, fileProfiles, nil)
 		percent := i * 100 / nFiles
-		fmt.Printf("%3d%%\r", percent);
+		fmt.Printf("%3d%%\r", percent)
 		i++
 	}
 
@@ -611,17 +613,23 @@ func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FilePro
 	exists := make(map[string]bool)
 	for file, lineProfiles := range fileProfiles {
 		exists[file] = fileExists(file)
-		for _, v := range(lineProfiles) {
-			if v == nil { continue }
-			if v.Function == nil { continue }
+		for _, v := range lineProfiles {
+			if v == nil {
+				continue
+			}
+			if v.Function == nil {
+				continue
+			}
 			fp := v.Function
 			if len(fp.Filename) == 0 {
 				log.Println("Got empty filename from func profile")
 			} else {
 				exists[fp.Filename] = fileExists(fp.Filename)
 			}
-			for _, caller := range(fp.Callers) {
-				if caller == nil { continue }
+			for _, caller := range fp.Callers {
+				if caller == nil {
+					continue
+				}
 				if len(caller.Filename) == 0 {
 					log.Println("Got empty filename from caller profile")
 				} else {
@@ -630,7 +638,6 @@ func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FilePro
 			}
 		}
 	}
-
 
 	reporter.generateHtmlFilesParallerWorkers(exists, fileProfiles, 8)
 	//reporter.generateHtmlFilesTightLoop(exists, fileProfiles)
@@ -663,7 +670,7 @@ func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string) {
 	hw.HtmlOpen()
 	hw.HeadOpen()
 	hw.LinkCss(cssFile)
-	hw.writeln(`<script>`+js+`</script>`)
+	hw.writeln(`<script>` + js + `</script>`)
 	hw.HeadClose()
 	hw.BodyOpen()
 }
@@ -675,8 +682,8 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
 	exists := reporter.GenerateHtmlFiles(fileProfiles)
 	done := make(chan bool)
-	hw := NewHtmlWriter("", reporter.ReportDir + "/functions.html")
-	defer func(){
+	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
+	defer func() {
 		hw.writeToDiskAsync(done)
 		<-done
 	}()
@@ -691,8 +698,8 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	na := "n/a"
 	//done := make(chan bool)
 	//nthreads := 0
-	for _, fc := range(functionCalls) {
-		if fc == nil || ! exists[fc.Filename] {
+	for _, fc := range functionCalls {
+		if fc == nil || !exists[fc.Filename] {
 			continue
 		}
 		hw.TrOpen()
@@ -705,7 +712,7 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 			inclMS := fc.InclusiveDuration.InMilliseconds()
 			exclMS := fc.OwnTime.InMilliseconds()
 			if inclMS > 0 {
-				ieRatio = fmt.Sprintf("%3.1f", exclMS * 100 /inclMS)
+				ieRatio = fmt.Sprintf("%3.1f", exclMS*100/inclMS)
 			}
 			hw.Td(fc.Hits,
 				fc.CountCallingPlaces(),
@@ -738,5 +745,5 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 }
 
 func (reporter *HtmlReporter) Epilog() {
-	fmt.Fprintln(reporter.ProfileFile, "</table>");
+	fmt.Fprintln(reporter.ProfileFile, "</table>")
 }

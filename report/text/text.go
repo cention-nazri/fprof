@@ -62,8 +62,8 @@ func (reporter *TextReporter) generateCtags() {
 		"-R",
 		"--tag-relative",
 		"-o",
-		reporter.ReportDir + "/tags",
-		reporter.ReportDir + "/" + report.FilesDir)
+		reporter.ReportDir+"/tags",
+		reporter.ReportDir+"/"+report.FilesDir)
 	if err != nil {
 		log.Printf("ctags ran with error: %v", err)
 	}

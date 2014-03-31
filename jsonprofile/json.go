@@ -1,9 +1,9 @@
 package jsonprofile
 
 import (
-	"log"
 	"fmt"
 	"io"
+	"log"
 	"sort"
 	"time"
 )
@@ -14,9 +14,9 @@ const ONE_BILLION = 1000000000
 const ONE_MILLION = 1000000
 
 type Profile struct {
-	Start TimeSpec             `json:"start"`
-	Stop  TimeSpec             `json:"stop"`
-	Duration TimeSpec          `json:"duration"`
+	Start          TimeSpec    `json:"start"`
+	Stop           TimeSpec    `json:"stop"`
+	Duration       TimeSpec    `json:"duration"`
 	FileProfileMap FileProfile `json:"files"`
 }
 
@@ -25,41 +25,41 @@ type FileProfile map[string][]*LineProfile
 type FunctionProfileSlice []*FunctionProfile
 type FunctionCallerSlice []*FunctionCaller
 type FunctionCall struct {
-	To *FunctionProfile
-	CallsMade Counter
+	To              *FunctionProfile
+	CallsMade       Counter
 	TimeInFunctions TimeSpec
 }
 type FunctionCallSlice []*FunctionCall
 
 type NameSpacedEntity struct {
-	NameSpace	  string	   `json:"namespace"`
-	Name              string           `json:"name"`
+	NameSpace string `json:"namespace"`
+	Name      string `json:"name"`
 }
 
 type HitCount struct {
-	Hits          Counter          `json:"hits"`
+	Hits Counter `json:"hits"`
 }
 
 type Counter uint64
 type LineProfile struct {
-	Function      *FunctionProfile `json:"function"`
+	Function *FunctionProfile `json:"function"`
 	HitCount
-	TotalDuration TimeSpec         `json:"total_duration"`
+	TotalDuration TimeSpec `json:"total_duration"`
 	FunctionCalls FunctionCallSlice
 	/* Cumulative of calls in FunctionCalls: */
-	CallsMade Counter
+	CallsMade       Counter
 	TimeInFunctions TimeSpec
 }
 
 type FunctionProfile struct {
 	NameSpacedEntity
-	Filename          string           `json:"filename"`
-	StartLine         Counter           `json:"start_line"`
+	Filename  string  `json:"filename"`
+	StartLine Counter `json:"start_line"`
 	HitCount
-	ExclusiveDuration TimeSpec         `json:"exclusive_duration"`
-	InclusiveDuration TimeSpec         `json:"inclusive_duration"`
-	OwnTime		  TimeSpec
-	IsNative          bool             `json:"is_native"`
+	ExclusiveDuration TimeSpec `json:"exclusive_duration"`
+	InclusiveDuration TimeSpec `json:"inclusive_duration"`
+	OwnTime           TimeSpec
+	IsNative          bool                `json:"is_native"`
 	Callers           FunctionCallerSlice `json:"callers"`
 }
 
@@ -79,7 +79,7 @@ func (f *NameSpacedEntity) FullName() string {
 
 func (fc *FunctionProfile) CountCallingPlaces() int {
 	if fc.Callers == nil {
-		return 0;
+		return 0
 	}
 	return len(fc.Callers)
 }
@@ -87,7 +87,7 @@ func (fc *FunctionProfile) CountCallingPlaces() int {
 func (fc *FunctionProfile) CountCallingFiles() int {
 	files := make(map[string]int)
 	//log.Println("callers for CallingFiles", fc.Callers)
-	for _, v := range(fc.Callers) {
+	for _, v := range fc.Callers {
 		files[v.Filename]++
 	}
 	return len(files)
@@ -99,16 +99,16 @@ type TimeSpec struct {
 }
 
 type FunctionCaller struct {
-	At            Counter   `json:"at"`
-	Filename      string   `json:"file"`
-	Frequency     Counter   `json:"frequency"`
+	At        Counter `json:"at"`
+	Filename  string  `json:"file"`
+	Frequency Counter `json:"frequency"`
 	NameSpacedEntity
 	TotalDuration TimeSpec `json:"total_duration"`
 }
 
 func (ts *TimeSpec) AverageInMilliseconds(n Counter) float64 {
 	var total float64
-	total = float64(ts.Sec * ONE_BILLION + ts.Nsec) / ONE_MILLION
+	total = float64(ts.Sec*ONE_BILLION+ts.Nsec) / ONE_MILLION
 	return float64(total) / float64(n)
 }
 
@@ -118,7 +118,7 @@ func (f *FunctionProfile) CalculateOwnTime() {
 }
 
 func (ts *TimeSpec) Subtract(other TimeSpec) {
-	if (ts.Nsec < other.Nsec) {
+	if ts.Nsec < other.Nsec {
 		ts.Sec--
 		ts.Nsec += ONE_BILLION
 	}
@@ -128,7 +128,7 @@ func (ts *TimeSpec) Subtract(other TimeSpec) {
 
 func (ts *TimeSpec) Add(other TimeSpec) {
 	ts.Nsec += other.Nsec
-	if (ts.Nsec >= ONE_BILLION) {
+	if ts.Nsec >= ONE_BILLION {
 		ts.Sec++
 		ts.Nsec = ts.Nsec % ONE_BILLION
 	}
@@ -140,7 +140,7 @@ func (ts TimeSpec) InMillisecondsStr() string {
 }
 
 func (ts TimeSpec) InMilliseconds() float64 {
-	return float64(ts.Sec) * 1000 + float64(ts.Nsec) / 1000000
+	return float64(ts.Sec)*1000 + float64(ts.Nsec)/1000000
 }
 
 func (ts TimeSpec) Time() string {
@@ -163,21 +163,21 @@ func (ts *TimeSpec) IsLessThan(other *TimeSpec) bool {
 }
 
 func (n Counter) EmptyIfZero() interface{} {
-	if (n > 0) {
+	if n > 0 {
 		return n
 	}
 	return ""
 }
 
 func (ts TimeSpec) NonZeroMsOrNone() string {
-	if (ts.Sec != 0 || ts.Nsec != 0) {
+	if ts.Sec != 0 || ts.Nsec != 0 {
 		return ts.InMillisecondsStr()
 	}
 	return ""
 }
 
 func (ts TimeSpec) InSeconds() float64 {
-	return float64(ts.Sec) + float64(ts.Nsec) / 1000000000
+	return float64(ts.Sec) + float64(ts.Nsec)/1000000000
 }
 
 func DecodeFromBytes(b []byte) *Profile {
@@ -220,7 +220,7 @@ func (p FunctionCallSlice) Swap(i, j int) {
 
 func (p FunctionCallerSlice) Total() Counter {
 	var nCalls Counter
-	for _, caller := range(p) {
+	for _, caller := range p {
 		nCalls += caller.Frequency
 	}
 	return nCalls
@@ -266,7 +266,7 @@ func (p FunctionProfileSlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 
-func (profile FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSlice {
+func (profile FileProfile) GetFunctionsSortedByExlusiveTime() FunctionProfileSlice {
 
 	calls := profile.getFunctionCalls()
 	sort.Stable(calls)
@@ -275,7 +275,7 @@ func (profile FileProfile )GetFunctionsSortedByExlusiveTime() FunctionProfileSli
 
 func (fp FileProfile) injectCallerDurations(function *FunctionProfile) {
 	callers := function.Callers
-	for _, caller := range(callers) {
+	for _, caller := range callers {
 		//if caller.Filename == "eval()" {
 		//	continue
 		//}
@@ -301,7 +301,7 @@ func (fp FileProfile) injectCallerDurations(function *FunctionProfile) {
 }
 
 func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
-	calls := make(FunctionProfileSlice,50)
+	calls := make(FunctionProfileSlice, 50)
 
 	for file, lineProfiles := range fileProfiles {
 		//if file == "eval()" {

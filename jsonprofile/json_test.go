@@ -154,15 +154,15 @@ func TestDecodeFromBytes(tt *testing.T) {
 
 func TestTimeSpecAdd(tt *testing.T) {
 	t = tt
-	t1 := TimeSpec{0, ONE_BILLION - 1 }
+	t1 := TimeSpec{0, ONE_BILLION - 1}
 	t2 := TimeSpec{0, 1}
 	t1.Add(t2)
-	logFailIf( t1.Sec != 1 && t1.Nsec != 0, "Overflow Nsec sum must add 1 second")
+	logFailIf(t1.Sec != 1 && t1.Nsec != 0, "Overflow Nsec sum must add 1 second")
 
-	t1 = TimeSpec{0,0}
-	t2 = TimeSpec{0,0}
+	t1 = TimeSpec{0, 0}
+	t2 = TimeSpec{0, 0}
 	t1.Add(t2)
-	logFailIf( t1.Sec != 0 && t1.Nsec != 0, "Adding 0.0 with 0.0 must produce 0.0")
+	logFailIf(t1.Sec != 0 && t1.Nsec != 0, "Adding 0.0 with 0.0 must produce 0.0")
 
 }
 
@@ -175,5 +175,5 @@ func TestTimeSpecAverageInMilliseconds(tt *testing.T) {
 
 	t1 = TimeSpec{1, 999000000}
 	avg = t1.AverageInMilliseconds(1000)
-	assertEqual(avg, float64(1999 / 1000.0), "AverageInMilliseconds() failed")
+	assertEqual(avg, float64(1999/1000.0), "AverageInMilliseconds() failed")
 }

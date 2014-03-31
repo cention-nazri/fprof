@@ -64,7 +64,7 @@ func openInBrowser(htmlfile string) {
 	log.Println(browser, htmlfile)
 	err := helper.RunCommand(browser, htmlfile)
 	if err != nil {
-		log.Fatal(browser,":",err)
+		log.Fatal(browser, ":", err)
 	}
 }
 
