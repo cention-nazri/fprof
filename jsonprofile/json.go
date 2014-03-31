@@ -53,14 +53,14 @@ type LineProfile struct {
 
 type FunctionProfile struct {
 	NameSpacedEntity
-	Filename  string  `json:"filename"`
-	StartLine Counter `json:"start_line"`
-	HitCount
-	ExclusiveDuration TimeSpec `json:"exclusive_duration"`
-	InclusiveDuration TimeSpec `json:"inclusive_duration"`
-	OwnTime           TimeSpec
+	Filename          string              `json:"filename"`
+	StartLine         Counter             `json:"start_line"`
+	ExclusiveDuration TimeSpec            `json:"exclusive_duration"`
+	InclusiveDuration TimeSpec            `json:"inclusive_duration"`
 	IsNative          bool                `json:"is_native"`
 	Callers           FunctionCallerSlice `json:"callers"`
+	HitCount
+	OwnTime TimeSpec
 }
 
 func removeParenthesis(name string) string {
