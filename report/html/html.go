@@ -592,37 +592,6 @@ table.sortable thead tr .headerSortDown { background-image: url(data:image/png;b
 `)
 }
 
-func (reporter *HtmlReporter) generateHtmlFilesTightLoop(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
-	nFiles := 0
-	for _, exist := range exists {
-		if exist {
-			nFiles++
-		}
-	}
-
-	done := make(chan bool, nFiles)
-	defer close(done)
-
-	log.Printf("Generating %d source html files\n", nFiles)
-
-	for file, exist := range exists {
-		if !exist {
-			log.Printf("Skipped (file does not exist): %s\n", file)
-			continue
-		}
-		go func(file string) {
-			reporter.writeOneSourceCodeHtmlFile(file, fileProfiles, nil, done)
-		}(file)
-	}
-
-	for i := 1; i <= nFiles; i++ {
-		<-done
-		percent := i * 100 / nFiles
-		fmt.Printf("%3d%%\r", percent)
-	}
-	fmt.Println("Done")
-}
-
 func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string]bool, fileProfiles jsonprofile.FileProfile, jsFiles []string, nWorkers int) {
 	nFiles := 0
 	for _, exist := range exists {
@@ -671,31 +640,6 @@ func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string
 	fmt.Println("")
 }
 
-func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, fileProfiles jsonprofile.FileProfile) {
-	nFiles := 0
-	for _, exist := range exists {
-		if exist {
-			nFiles++
-		}
-	}
-
-	log.Printf("Generating %d source html files\n", nFiles)
-
-	i := 1
-	for file, exist := range exists {
-		if !exist {
-			log.Printf("Skipped (file does not exist): %s\n", file)
-			continue
-		}
-		reporter.writeOneSourceCodeHtmlFile(file, fileProfiles, nil, nil)
-		percent := i * 100 / nFiles
-		fmt.Printf("%3d%%\r", percent)
-		i++
-	}
-
-	fmt.Println("")
-}
-
 func (reporter *HtmlReporter) GenerateSourceCodeHtmlFiles(fileProfiles jsonprofile.FileProfile, jsFiles []string) map[string]bool {
 	exists := make(map[string]bool)
 	for file, lineProfiles := range fileProfiles {
@@ -727,8 +671,6 @@ func (reporter *HtmlReporter) GenerateSourceCodeHtmlFiles(fileProfiles jsonprofi
 	}
 
 	reporter.generateHtmlFilesParallerWorkers(exists, fileProfiles, jsFiles, 8)
-	//reporter.generateHtmlFilesTightLoop(exists, fileProfiles)
-	//reporter.generateHtmlFilesOneByOne(exists, fileProfiles)
 	return exists
 }
 
