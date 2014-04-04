@@ -445,8 +445,7 @@ func fileExists(file string) bool {
 	return true
 }
 
-// TODO rename this to writeOneSourceCodeHtmlFile
-func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile, rootJsFiles []string, done chan bool) {
+func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfiles jsonprofile.FileProfile, rootJsFiles []string, done chan bool) {
 	htmlfile := reporter.ReportDir + "/" + reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
 	hw := NewHtmlWriter(file, htmlfile)
@@ -621,7 +620,7 @@ func (reporter *HtmlReporter) generateHtmlFilesTightLoop(exists map[string]bool,
 			continue
 		}
 		go func(file string) {
-			reporter.writeOneHtmlFile(file, fileProfiles, nil, done)
+			reporter.writeOneSourceCodeHtmlFile(file, fileProfiles, nil, done)
 		}(file)
 	}
 
@@ -659,7 +658,7 @@ func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string
 		wg.Add(1)
 		go func() {
 			for j := range tasks {
-				reporter.writeOneHtmlFile(j.file, j.fileProfiles, jsFiles, done)
+				reporter.writeOneSourceCodeHtmlFile(j.file, j.fileProfiles, jsFiles, done)
 			}
 			wg.Done()
 		}()
@@ -697,7 +696,7 @@ func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, 
 			log.Printf("Skipped (file does not exist): %s\n", file)
 			continue
 		}
-		reporter.writeOneHtmlFile(file, fileProfiles, nil, nil)
+		reporter.writeOneSourceCodeHtmlFile(file, fileProfiles, nil, nil)
 		percent := i * 100 / nFiles
 		fmt.Printf("%3d%%\r", percent)
 		i++
@@ -706,8 +705,7 @@ func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, 
 	fmt.Println("")
 }
 
-// TODO rename this to GenerateSourceCodeHtmlFiles
-func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile, jsFiles []string) map[string]bool {
+func (reporter *HtmlReporter) GenerateSourceCodeHtmlFiles(fileProfiles jsonprofile.FileProfile, jsFiles []string) map[string]bool {
 	//helper.CreateFile(reporter.ReportDir +"/"+ report.FilesDir)
 
 	exists := make(map[string]bool)
@@ -771,7 +769,7 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 		"function.js",
 	}
 
-	exists := reporter.GenerateHtmlFiles(fileProfiles, jsFiles)
+	exists := reporter.GenerateSourceCodeHtmlFiles(fileProfiles, jsFiles)
 	done := make(chan bool)
 	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
 	defer func() {
