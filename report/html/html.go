@@ -147,6 +147,10 @@ func (hw *HtmlWriter) BodyOpen()                 { hw.begin("body") }
 func (hw *HtmlWriter) BodyClose()                { hw.end("body") }
 func (hw *HtmlWriter) TableOpen(attrs ...string) { hw.begin("table", attrs...) }
 func (hw *HtmlWriter) TableClose()               { hw.end("table") }
+func (hw *HtmlWriter) TheadOpen()                   { hw.begin("thead") }
+func (hw *HtmlWriter) TheadClose()                  { hw.end("thead") }
+func (hw *HtmlWriter) TbodyOpen()                   { hw.begin("tbody") }
+func (hw *HtmlWriter) TbodyClose()                  { hw.end("tbody") }
 func (hw *HtmlWriter) TrOpen()                   { hw.begin("tr") }
 func (hw *HtmlWriter) TrClose()                  { hw.end("tr") }
 func (hw *HtmlWriter) ThOpen()                   { hw.begin("th") }
@@ -423,7 +427,9 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 	hw.HtmlWithCssBodyOpen(pathToRoot(file) + "../style.css")
 	hw.Html(file)
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
+	hw.TheadOpen()
 	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions", "Code")
+	hw.TheadClose()
 
 	if !fileExists(file) {
 		log.Printf("FIXME We should not reach here, file %s should exist\n", file)
@@ -440,6 +446,7 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 		lineProfiles = makeEmptyLineProfiles(file)
 	}
 
+	hw.TbodyOpen()
 	var fp *jsonprofile.FunctionProfile
 	for i, lp := range lineProfiles {
 		lineNo := i + 1
@@ -453,6 +460,7 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 		}
 		reporter.writeOneTableRow(hw, lineNo, lp, fp, scanner)
 	}
+	hw.TbodyClose()
 	hw.TableClose()
 	for i := 0; i < 50; i++ {
 		hw.writeln("<br>")
@@ -695,7 +703,10 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	hw.Div("Duration: " + p.Duration.InMillisecondsStr() + "ms")
 	hw.Html("Functions sorted by exclusive time")
 	hw.TableOpen(`border="1"`, `cellpadding="0"`)
+	hw.TheadOpen()
 	hw.Th("Calls", "Places", "Files", "Exclusive (ms)", "Inclusive (ms)", "Incl/Excl %%", "Function")
+	hw.TheadClose()
+	hw.TbodyOpen()
 	na := "n/a"
 	//done := make(chan bool)
 	//nthreads := 0
@@ -737,6 +748,7 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 		hw.TrClose()
 		//fmt.Println(lines)
 	}
+	hw.TbodyClose()
 	hw.TableClose()
 	hw.BodyClose()
 	hw.HtmlClose()
