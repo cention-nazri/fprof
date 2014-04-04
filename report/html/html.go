@@ -77,7 +77,6 @@ func (hw *HtmlWriter) write(v interface{}) {
 }
 
 func (hw *HtmlWriter) writeln(v interface{}) {
-	//hw.spaces()
 	fmt.Fprintf(hw.w, "%v\n", v)
 }
 
@@ -102,7 +101,6 @@ func (hw *HtmlWriter) comment(indent, format string, args ...interface{}) {
 
 func (hw *HtmlWriter) begin(el string, attrs ...string) {
 	fmt.Fprintln(hw.w, "")
-	//hw.writeln("")
 	hw.spaces()
 	hw.write("<" + el)
 	for _, v := range attrs {
@@ -172,7 +170,6 @@ func New(reportDir string) *HtmlReporter {
 	helper.CreateDir(reportDir)
 	reporter := HtmlReporter{}
 	reporter.ReportDir = reportDir
-	//reporter.ProfileFile = helper.CreateFile(reportDir + "/profile.html")
 	return &reporter
 }
 
@@ -214,8 +211,6 @@ func (reporter *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFil
 		lineMetrics = make([]report.LineMetric, lineCount+1)
 		profileFor[filename] = lineMetrics
 	}
-	//fmt.Println("line count for",filename,"is", cap(lineMetrics))
-	//fmt.Println("line is", line)
 	profileFor[filename][line-1] = timings
 	reporter.PrintMetrics(report.FilesDir, timings, filenameAndLine)
 }
@@ -283,7 +278,6 @@ func getRelativePathTo(to, from string) string {
 		return to
 	}
 
-	//log.Printf("getRelativePathTo(%s, %s)\n", to, from)
 	rto, rfrom := stripCommonPath(to, from)
 	r := ""
 	if path.Dir(rto) != "." {
@@ -291,7 +285,6 @@ func getRelativePathTo(to, from string) string {
 	} else {
 		r = pathToRoot(path.Dir(rfrom)) + rto
 	}
-	//log.Printf(" => %s\n", r)
 	return r
 }
 
@@ -486,8 +479,6 @@ func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfil
 		if i+1 < len(lineProfiles) {
 			if lineProfiles[i+1] != nil {
 				fp = lineProfiles[i+1].Function
-				//log.Println("function:",fp)
-				//log.Println("ncallers", len(fp.Callers))
 			}
 		}
 		reporter.writeOneTableRow(hw, lineNo, lp, fp, scanner)
@@ -706,8 +697,6 @@ func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, 
 }
 
 func (reporter *HtmlReporter) GenerateSourceCodeHtmlFiles(fileProfiles jsonprofile.FileProfile, jsFiles []string) map[string]bool {
-	//helper.CreateFile(reporter.ReportDir +"/"+ report.FilesDir)
-
 	exists := make(map[string]bool)
 	for file, lineProfiles := range fileProfiles {
 		exists[file] = fileExists(file)
@@ -788,8 +777,6 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	hw.TheadClose()
 	hw.TbodyOpen()
 	na := "n/a"
-	//done := make(chan bool)
-	//nthreads := 0
 	for _, fc := range functionCalls {
 		if fc == nil || !exists[fc.Filename] {
 			continue
@@ -814,27 +801,15 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 				ieRatio)
 
 			hw.TdOpen(`class="s"`)
-			//if fileProfiles[fc.Filename] == nil {
-			//	go func (file string, lineProfiles []*jsonprofile.LineProfile) {
-			//		reporter.writeOneHtmlFile(file, lineProfiles)
-			//		done <- true
-			//	}(fc.Filename, make([]*jsonprofile.LineProfile, helper.GetLineCount(fc.Filename)))
-			//	nthreads++
-			//}
 			hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
 		}
 		hw.TdClose()
-		//fmt.Println(fc.ExclusiveDuration.InMilliseconds(), fc.FullName())
 		hw.TrClose()
-		//fmt.Println(lines)
 	}
 	hw.TbodyClose()
 	hw.TableClose()
 	hw.BodyClose()
 	hw.HtmlClose()
-	//for i:=0; i<nthreads; i++ {
-	//	<-done
-	//}
 }
 
 func (reporter *HtmlReporter) Epilog() {
