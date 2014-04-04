@@ -297,16 +297,35 @@ func getRelativePathTo(to, from string) string {
 
 func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.FunctionProfile, indent string) {
 	hideThreshold := 10
-	nCallers := len(fp.Callers)
-	if nCallers == 0 {
-		hw.comment(indent, "Spent %vms within %v()", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName())
-	} else {
+	//nCallers := len(fp.Callers)
+	//if nCallers == 0 {
+	//	avgStr := ""
+	//	freqStr := "once"
+	//	if fp.Hits > 1 {
+	//		freqStr = fmt.Sprintf("%d times", fp.Hits)
+	//		avgStr = fmt.Sprintf(", avg %vms/call", fp.InclusiveDuration.AverageInMilliseconds(fp.Hits))
+	//	}
+	//	hw.comment(indent, "Spent %vms within %v() which was called %s (caller data not available)%s", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName(), freqStr, avgStr)
+	//} else {
+
 		freqStr := ":"
 		nCalls := fp.Callers.Total()
-		if nCalls > 1 {
-			freqStr = fmt.Sprintf(" %d times:", nCalls)
+		nilCallerStr := ""
+		diff := fp.Hits - nCalls
+		if diff > 0 {
+			if diff == 1 {
+				nilCallerStr = fmt.Sprintf("once by unknown callers", diff)
+			} else {
+				nilCallerStr = fmt.Sprintf("%d times by unknown callers, avg %.3fms/call", diff, fp.GetTimeSpentByUnknownCallers().AverageInMilliseconds(diff))
+			}
+		}
+		if fp.Hits > 1 {
+			freqStr = fmt.Sprintf(" %d times:", fp.Hits)
 		}
 		hw.comment(indent, "Spent %vms within %v() which was called%s", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName(), freqStr)
+		if (diff > 0) {
+			hw.commentln(indent, "%s", nilCallerStr)
+		}
 		calleeFile := fp.Filename
 		calleeFile = reporter.htmlLineFilename(calleeFile)
 		startHideAt := 0
@@ -334,7 +353,7 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 		if startHideAt > 0 {
 			hw.Html(`</div>`)
 		}
-	}
+	//}
 }
 
 func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.LineProfile, indent string) {
@@ -426,6 +445,7 @@ func fileExists(file string) bool {
 	return true
 }
 
+// TODO rename this to writeOneSourceCodeHtmlFile
 func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile, rootJsFiles []string, done chan bool) {
 	htmlfile := reporter.ReportDir + "/" + reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
@@ -686,6 +706,7 @@ func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, 
 	fmt.Println("")
 }
 
+// TODO rename this to GenerateSourceCodeHtmlFiles
 func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile, jsFiles []string) map[string]bool {
 	//helper.CreateFile(reporter.ReportDir +"/"+ report.FilesDir)
 

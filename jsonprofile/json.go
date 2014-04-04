@@ -77,6 +77,16 @@ func (f *NameSpacedEntity) FullName() string {
 	return removeParenthesis(f.Name)
 }
 
+func (fc *FunctionProfile) GetTimeSpentByUnknownCallers() *TimeSpec {
+	known := TimeSpec{0,0}
+	for _, c := range fc.Callers {
+		known.Add(c.TotalDuration)
+	}
+	unknown := fc.InclusiveDuration
+	unknown.Subtract(known)
+	return &unknown
+}
+
 func (fc *FunctionProfile) CountCallingPlaces() int {
 	if fc.Callers == nil {
 		return 0
