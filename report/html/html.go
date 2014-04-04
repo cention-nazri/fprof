@@ -138,6 +138,10 @@ func (hw *HtmlWriter) repeatIn(el string, items ...interface{}) {
 func (hw *HtmlWriter) HtmlOpen()  { hw.begin("html") }
 func (hw *HtmlWriter) HtmlClose() { hw.end("html") }
 func (hw *HtmlWriter) HeadOpen()  { hw.begin("head") }
+func (hw *HtmlWriter) LinkJs(jsFile string) {
+	hw.begin("script", fmt.Sprintf(`src="%s"`, jsFile), `type="text/javascript"`)
+	hw.end("script")
+}
 func (hw *HtmlWriter) LinkCss(cssFile string) {
 	hw.begin("link", `rel="stylesheet"`, `type="text/css"`, fmt.Sprintf(`href="%s"`, cssFile))
 	hw.indent--
@@ -172,6 +176,9 @@ func New(reportDir string) *HtmlReporter {
 	return &reporter
 }
 
+func (reporter *HtmlReporter) GetPathTo(file string) string {
+	return reporter.ReportDir + "/" + file;
+}
 func (reporter *HtmlReporter) Prolog(header string) {
 	fmt.Fprint(reporter.ProfileFile, "<table><tr>")
 	for _, head := range strings.Fields(header) {
@@ -419,14 +426,20 @@ func fileExists(file string) bool {
 	return true
 }
 
-func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile, done chan bool) {
+func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonprofile.FileProfile, rootJsFiles []string, done chan bool) {
 	htmlfile := reporter.ReportDir + "/" + reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
 	hw := NewHtmlWriter(file, htmlfile)
 	defer hw.writeToDiskAsync(done)
-	hw.HtmlWithCssBodyOpen(pathToRoot(file) + "../style.css")
+
+	rootPath := pathToRoot(file)
+	jsFiles := []string{}
+	for _,file := range rootJsFiles {
+		jsFiles = append(jsFiles, rootPath + "../" + file)
+	}
+	hw.HtmlWithCssBodyOpen(rootPath + "../style.css", jsFiles)
 	hw.Html(file)
-	hw.TableOpen(`border="1"`, `cellpadding="0"`)
+	hw.TableOpen(`id="function_table"`, `border="1"`, `cellpadding="0"`, `class="sortable"`)
 	hw.TheadOpen()
 	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions", "Code")
 	hw.TheadClose()
@@ -469,11 +482,55 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 	hw.HtmlClose()
 }
 
+func (reporter *HtmlReporter) GenerateJsFiles() {
+	tableSorterJs := `$.tablesorter.defaults.sortInitialOrder = "desc";`
+	fprofJs := `function srcElement(e) {
+	e = e || window.event;
+	var targ = e.target || e.srcElement;
+	if (targ.nodeType == 3) targ = targ.parentNode; // defeat Safari bug
+	return targ;
+}
+function toggleHide(e) {
+	var el = srcElement(e);
+	var div = el.parentNode;
+	var hidden = div.nextSibling;
+	if (! hidden.style.display || hidden.style.display === 'none') {
+		el.origHTML = el.innerHTML;
+		hidden.style.display = 'block';
+		el.innerHTML = 'Hide'
+	} else {
+		hidden.style.display = 'none';
+		el.innerHTML = el.origHTML;
+	}
+}
+`
+	functionsJs := `$(document).ready(function(){
+	$("#functions_table").tablesorter({
+		sortList: [[3,1]]
+	});
+});`
+	functionJs := `$(document).ready(function(){
+	$("#function_table").tablesorter();
+});`
+
+	jsFiles := map[string]string{
+		"jquery-min.js" : JQuery,
+		"jquery-tablesorter-min.js" : JQueryTableSorter,
+		"fprof.js" : fprofJs,
+		"tablesorter.js" : tableSorterJs,
+		"functions.js" : functionsJs,
+		"function.js" : functionJs,
+	}
+
+	for filename, content := range jsFiles {
+		file := helper.CreateFile(reporter.GetPathTo(filename))
+		fmt.Fprint(file, content)
+	}
+}
+
 func (reporter *HtmlReporter) GenerateCssFile() {
 	css := helper.CreateFile(reporter.ReportDir + "/style.css")
-	fmt.Fprint(css,
-		`
-body {
+	fmt.Fprint(css, `body {
 	font-family: sans-serif;
 }
 table {
@@ -509,6 +566,19 @@ td.s {
 .hide {
 	display: none;
 }
+
+table.sortable thead tr .header {
+	background-repeat: no-repeat;
+	background-position: 0% 80%;
+	cursor: pointer;
+}
+table.sortable thead tr .headerSortUp   { background-image: url(data:image/png;base64,`)
+fmt.Fprint(css, ImgAscending)
+
+fmt.Fprint(css, `); }
+table.sortable thead tr .headerSortDown { background-image: url(data:image/png;base64,`)
+fmt.Fprint(css, ImgDescending)
+fmt.Fprint(css, `); }
 `)
 }
 
@@ -531,7 +601,7 @@ func (reporter *HtmlReporter) generateHtmlFilesTightLoop(exists map[string]bool,
 			continue
 		}
 		go func(file string) {
-			reporter.writeOneHtmlFile(file, fileProfiles, done)
+			reporter.writeOneHtmlFile(file, fileProfiles, nil, done)
 		}(file)
 	}
 
@@ -543,7 +613,7 @@ func (reporter *HtmlReporter) generateHtmlFilesTightLoop(exists map[string]bool,
 	fmt.Println("Done")
 }
 
-func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string]bool, fileProfiles jsonprofile.FileProfile, nWorkers int) {
+func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string]bool, fileProfiles jsonprofile.FileProfile, jsFiles []string, nWorkers int) {
 	nFiles := 0
 	for _, exist := range exists {
 		if exist {
@@ -569,7 +639,7 @@ func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string
 		wg.Add(1)
 		go func() {
 			for j := range tasks {
-				reporter.writeOneHtmlFile(j.file, j.fileProfiles, done)
+				reporter.writeOneHtmlFile(j.file, j.fileProfiles, jsFiles, done)
 			}
 			wg.Done()
 		}()
@@ -607,7 +677,7 @@ func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, 
 			log.Printf("Skipped (file does not exist): %s\n", file)
 			continue
 		}
-		reporter.writeOneHtmlFile(file, fileProfiles, nil)
+		reporter.writeOneHtmlFile(file, fileProfiles, nil, nil)
 		percent := i * 100 / nFiles
 		fmt.Printf("%3d%%\r", percent)
 		i++
@@ -616,7 +686,7 @@ func (reporter *HtmlReporter) generateHtmlFilesOneByOne(exists map[string]bool, 
 	fmt.Println("")
 }
 
-func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile) map[string]bool {
+func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FileProfile, jsFiles []string) map[string]bool {
 	//helper.CreateFile(reporter.ReportDir +"/"+ report.FilesDir)
 
 	exists := make(map[string]bool)
@@ -648,38 +718,19 @@ func (reporter *HtmlReporter) GenerateHtmlFiles(fileProfiles jsonprofile.FilePro
 		}
 	}
 
-	reporter.generateHtmlFilesParallerWorkers(exists, fileProfiles, 8)
+	reporter.generateHtmlFilesParallerWorkers(exists, fileProfiles, jsFiles, 8)
 	//reporter.generateHtmlFilesTightLoop(exists, fileProfiles)
 	//reporter.generateHtmlFilesOneByOne(exists, fileProfiles)
 	return exists
 }
 
-func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string) {
-	js := `
-	function srcElement(e) {
-		e = e || window.event;
-		var targ = e.target || e.srcElement;
-		if (targ.nodeType == 3) targ = targ.parentNode; // defeat Safari bug
-		return targ;
-	}
-	function toggleHide(e) {
-		var el = srcElement(e);
-		var div = el.parentNode;
-		var hidden = div.nextSibling;
-		if (! hidden.style.display || hidden.style.display === 'none') {
-			el.origHTML = el.innerHTML;
-			hidden.style.display = 'block';
-			el.innerHTML = 'Hide'
-		} else {
-			hidden.style.display = 'none';
-			el.innerHTML = el.origHTML;
-		}
-	}
-	`
+func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string, jsFiles []string) {
 	hw.HtmlOpen()
 	hw.HeadOpen()
 	hw.LinkCss(cssFile)
-	hw.writeln(`<script>` + js + `</script>`)
+	for _, jsFile := range jsFiles {
+		hw.LinkJs(jsFile)
+	}
 	hw.HeadClose()
 	hw.BodyOpen()
 }
@@ -687,9 +738,19 @@ func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string) {
 func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	fileProfiles := p.FileProfileMap
 	reporter.GenerateCssFile()
+	reporter.GenerateJsFiles()
 	log.Println("Cross referencing function call metrics...")
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
-	exists := reporter.GenerateHtmlFiles(fileProfiles)
+
+	jsFiles := []string{
+		"jquery-min.js",
+		"jquery-tablesorter-min.js",
+		"jquery-tablesorter-min.js",
+		"tablesorter.js",
+		"function.js",
+	}
+
+	exists := reporter.GenerateHtmlFiles(fileProfiles, jsFiles)
 	done := make(chan bool)
 	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
 	defer func() {
@@ -697,14 +758,14 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 		<-done
 	}()
 
-	hw.HtmlWithCssBodyOpen("style.css")
+	jsFiles[4] = "functions.js"
+	hw.HtmlWithCssBodyOpen("style.css", jsFiles)
 	hw.Div("Start: " + p.Start.Time())
 	hw.Div("Stop: " + p.Stop.Time())
 	hw.Div("Duration: " + p.Duration.InMillisecondsStr() + "ms")
-	hw.Html("Functions sorted by exclusive time")
-	hw.TableOpen(`border="1"`, `cellpadding="0"`)
+	hw.TableOpen(`border="1"`, `cellpadding="0"`, `id="functions_table"`, `class="sortable"`)
 	hw.TheadOpen()
-	hw.Th("Calls", "Places", "Files", "Exclusive (ms)", "Inclusive (ms)", "Incl/Excl %%", "Function")
+	hw.Th("Calls", "Places", "Files", "Self (ms)", "Inclusive (ms)", "Incl/Excl %%", "Function")
 	hw.TheadClose()
 	hw.TbodyOpen()
 	na := "n/a"
