@@ -401,7 +401,7 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 	}
 }
 
-func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, fp *jsonprofile.FunctionProfile, scanner *bufio.Scanner) {
+func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, scanner *bufio.Scanner) {
 	hasSourceLine := false
 	sourceLine := ""
 	indent := ""
@@ -422,12 +422,11 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		hw.Td(lp.Hits, lp.TotalDuration.InMillisecondsStr())
 		hw.Td(lp.CallsMade.EmptyIfZero(), lp.TimeInFunctions.NonZeroMsOrNone())
 		hw.TdOpen(`class="s"`)
+		if lp.Function != nil {
+			reporter.showCallers(hw, lp.Function, indent)
+		}
 	}
 
-	/* Function definition */
-	if fp != nil {
-		reporter.showCallers(hw, fp, indent)
-	}
 	if hasSourceLine {
 		hw.Html(html.EscapeString(sourceLine))
 		reporter.showCallsMade(hw, lp, indent)
@@ -481,16 +480,9 @@ func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfil
 	}
 
 	hw.TbodyOpen()
-	var fp *jsonprofile.FunctionProfile
 	for i, lp := range lineProfiles {
 		lineNo := i + 1
-		fp = nil
-		if i+1 < len(lineProfiles) {
-			if lineProfiles[i+1] != nil {
-				fp = lineProfiles[i+1].Function
-			}
-		}
-		reporter.writeOneTableRow(hw, lineNo, lp, fp, scanner)
+		reporter.writeOneTableRow(hw, lineNo, lp, scanner)
 	}
 	hw.TbodyClose()
 	hw.TableClose()
