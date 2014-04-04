@@ -77,6 +77,7 @@ func (hw *HtmlWriter) write(v interface{}) {
 }
 
 func (hw *HtmlWriter) writeln(v interface{}) {
+	hw.spaces()
 	fmt.Fprintf(hw.w, "%v\n", v)
 }
 
@@ -100,7 +101,6 @@ func (hw *HtmlWriter) comment(indent, format string, args ...interface{}) {
 }
 
 func (hw *HtmlWriter) begin(el string, attrs ...string) {
-	fmt.Fprintln(hw.w, "")
 	hw.spaces()
 	hw.write("<" + el)
 	for _, v := range attrs {
@@ -108,6 +108,11 @@ func (hw *HtmlWriter) begin(el string, attrs ...string) {
 	}
 	hw.write(">")
 	hw.indent++
+}
+
+func (hw *HtmlWriter) beginln(el string, attrs ...string) {
+	hw.begin(el, attrs...)
+	fmt.Fprintln(hw.w, "")
 }
 
 func (hw *HtmlWriter) end(el string) {
@@ -122,9 +127,10 @@ func (hw *HtmlWriter) Html(v ...interface{}) {
 }
 
 func (hw *HtmlWriter) in(el string, v interface{}) {
-	hw.begin(el)
+	hw.spaces()
+	hw.Html("<", el, ">")
 	hw.Html(v)
-	hw.end(el)
+	hw.Html("</", el, ">\n")
 }
 
 func (hw *HtmlWriter) repeatIn(el string, items ...interface{}) {
@@ -133,32 +139,36 @@ func (hw *HtmlWriter) repeatIn(el string, items ...interface{}) {
 	}
 }
 
-func (hw *HtmlWriter) HtmlOpen()  { hw.begin("html") }
+func (hw *HtmlWriter) HtmlOpen()  { hw.beginln("html") }
 func (hw *HtmlWriter) HtmlClose() { hw.end("html") }
-func (hw *HtmlWriter) HeadOpen()  { hw.begin("head") }
+func (hw *HtmlWriter) HeadOpen()  { hw.beginln("head") }
 func (hw *HtmlWriter) LinkJs(jsFile string) {
-	hw.begin("script", fmt.Sprintf(`src="%s"`, jsFile), `type="text/javascript"`)
-	hw.end("script")
+	hw.spaces()
+	hw.Html(fmt.Sprintf(`<script src="%s" type="text/javascript"></script>`+"\n", jsFile))
 }
 func (hw *HtmlWriter) LinkCss(cssFile string) {
-	hw.begin("link", `rel="stylesheet"`, `type="text/css"`, fmt.Sprintf(`href="%s"`, cssFile))
-	hw.indent--
+	hw.spaces()
+	hw.Html(fmt.Sprintf(`<link rel="stylesheet" type="text/css" href="%s">`+"\n", cssFile))
 }
 func (hw *HtmlWriter) HeadClose()                { hw.end("head") }
-func (hw *HtmlWriter) BodyOpen()                 { hw.begin("body") }
+func (hw *HtmlWriter) BodyOpen()                 { hw.beginln("body") }
 func (hw *HtmlWriter) BodyClose()                { hw.end("body") }
-func (hw *HtmlWriter) TableOpen(attrs ...string) { hw.begin("table", attrs...) }
+func (hw *HtmlWriter) TableOpen(attrs ...string) { hw.beginln("table", attrs...) }
 func (hw *HtmlWriter) TableClose()               { hw.end("table") }
-func (hw *HtmlWriter) TheadOpen()                { hw.begin("thead") }
+func (hw *HtmlWriter) TheadOpen()                { hw.beginln("thead") }
 func (hw *HtmlWriter) TheadClose()               { hw.end("thead") }
-func (hw *HtmlWriter) TbodyOpen()                { hw.begin("tbody") }
+func (hw *HtmlWriter) TbodyOpen()                { hw.beginln("tbody") }
 func (hw *HtmlWriter) TbodyClose()               { hw.end("tbody") }
-func (hw *HtmlWriter) TrOpen()                   { hw.begin("tr") }
+func (hw *HtmlWriter) TrOpen()                   { hw.beginln("tr") }
 func (hw *HtmlWriter) TrClose()                  { hw.end("tr") }
-func (hw *HtmlWriter) ThOpen()                   { hw.begin("th") }
+func (hw *HtmlWriter) ThOpen()                   { hw.beginln("th") }
 func (hw *HtmlWriter) ThClose()                  { hw.end("th") }
 func (hw *HtmlWriter) TdOpen(attrs ...string)    { hw.begin("td", attrs...) }
 func (hw *HtmlWriter) TdClose()                  { hw.end("td") }
+func (hw *HtmlWriter) TdCloseNoIndent() {
+	hw.Html("</td>\n")
+	hw.indent--
+}
 func (hw *HtmlWriter) DivOpen(attrs ...string)   { hw.begin("div", attrs...) }
 func (hw *HtmlWriter) DivClose()                 { hw.end("div") }
 func (hw *HtmlWriter) Th(v ...interface{})       { hw.repeatIn("th", v...) }
@@ -397,9 +407,8 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 	indent := ""
 	hw.TrOpen()
 	hw.TdOpen()
-	hw.writeln(fmt.Sprintf(`<a id="%d"></a>`, lineNo))
-	hw.writeln(lineNo)
-	hw.TdClose()
+	hw.Html(fmt.Sprintf(`<a id="%d">%d</a>`, lineNo, lineNo))
+	hw.TdCloseNoIndent()
 	if scanner.Scan() {
 		hasSourceLine = true
 		sourceLine = scanner.Text()
@@ -420,10 +429,10 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		reporter.showCallers(hw, fp, indent)
 	}
 	if hasSourceLine {
-		hw.writeln(html.EscapeString(sourceLine))
+		hw.Html(html.EscapeString(sourceLine))
 		reporter.showCallsMade(hw, lp, indent)
 	}
-	hw.TdClose()
+	hw.TdCloseNoIndent()
 	hw.TrClose()
 }
 
@@ -745,7 +754,7 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 			hw.TdOpen(`class="s"`)
 			hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
 		}
-		hw.TdClose()
+		hw.TdCloseNoIndent()
 		hw.TrClose()
 	}
 	hw.TbodyClose()
