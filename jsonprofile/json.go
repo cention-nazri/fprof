@@ -78,7 +78,7 @@ func (f *NameSpacedEntity) FullName() string {
 }
 
 func (fc *FunctionProfile) GetTimeSpentByUnknownCallers() *TimeSpec {
-	known := TimeSpec{0,0}
+	known := TimeSpec{0, 0}
 	for _, c := range fc.Callers {
 		known.Add(c.TotalDuration)
 	}

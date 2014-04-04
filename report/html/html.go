@@ -151,10 +151,10 @@ func (hw *HtmlWriter) BodyOpen()                 { hw.begin("body") }
 func (hw *HtmlWriter) BodyClose()                { hw.end("body") }
 func (hw *HtmlWriter) TableOpen(attrs ...string) { hw.begin("table", attrs...) }
 func (hw *HtmlWriter) TableClose()               { hw.end("table") }
-func (hw *HtmlWriter) TheadOpen()                   { hw.begin("thead") }
-func (hw *HtmlWriter) TheadClose()                  { hw.end("thead") }
-func (hw *HtmlWriter) TbodyOpen()                   { hw.begin("tbody") }
-func (hw *HtmlWriter) TbodyClose()                  { hw.end("tbody") }
+func (hw *HtmlWriter) TheadOpen()                { hw.begin("thead") }
+func (hw *HtmlWriter) TheadClose()               { hw.end("thead") }
+func (hw *HtmlWriter) TbodyOpen()                { hw.begin("tbody") }
+func (hw *HtmlWriter) TbodyClose()               { hw.end("tbody") }
 func (hw *HtmlWriter) TrOpen()                   { hw.begin("tr") }
 func (hw *HtmlWriter) TrClose()                  { hw.end("tr") }
 func (hw *HtmlWriter) ThOpen()                   { hw.begin("th") }
@@ -177,7 +177,7 @@ func New(reportDir string) *HtmlReporter {
 }
 
 func (reporter *HtmlReporter) GetPathTo(file string) string {
-	return reporter.ReportDir + "/" + file;
+	return reporter.ReportDir + "/" + file
 }
 func (reporter *HtmlReporter) Prolog(header string) {
 	fmt.Fprint(reporter.ProfileFile, "<table><tr>")
@@ -308,51 +308,51 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 	//	hw.comment(indent, "Spent %vms within %v() which was called %s (caller data not available)%s", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName(), freqStr, avgStr)
 	//} else {
 
-		freqStr := ":"
-		nCalls := fp.Callers.Total()
-		nilCallerStr := ""
-		diff := fp.Hits - nCalls
-		if diff > 0 {
-			if diff == 1 {
-				nilCallerStr = fmt.Sprintf("once by unknown callers", diff)
-			} else {
-				nilCallerStr = fmt.Sprintf("%d times by unknown callers, avg %.3fms/call", diff, fp.GetTimeSpentByUnknownCallers().AverageInMilliseconds(diff))
-			}
+	freqStr := ":"
+	nCalls := fp.Callers.Total()
+	nilCallerStr := ""
+	diff := fp.Hits - nCalls
+	if diff > 0 {
+		if diff == 1 {
+			nilCallerStr = fmt.Sprintf("once by unknown callers", diff)
+		} else {
+			nilCallerStr = fmt.Sprintf("%d times by unknown callers, avg %.3fms/call", diff, fp.GetTimeSpentByUnknownCallers().AverageInMilliseconds(diff))
 		}
-		if fp.Hits > 1 {
-			freqStr = fmt.Sprintf(" %d times:", fp.Hits)
-		}
-		hw.comment(indent, "Spent %vms within %v() which was called%s", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName(), freqStr)
-		if (diff > 0) {
-			hw.commentln(indent, "%s", nilCallerStr)
-		}
-		calleeFile := fp.Filename
-		calleeFile = reporter.htmlLineFilename(calleeFile)
-		startHideAt := 0
-		if len(fp.Callers) > hideThreshold {
-			startHideAt = 5
-		}
-		for i, c := range fp.Callers {
-			if startHideAt > 0 {
-				if i == startHideAt {
-					hw.HiderLink(indent, len(fp.Callers)-startHideAt)
-				}
-			}
-			callerFile, callerAt := c.Filename, c.At
-			callerFile = reporter.htmlLineFilename(callerFile)
-			freqStr = "once"
-			if c.Frequency > 1 {
-				freqStr = fmt.Sprintf("%d times", c.Frequency)
-			}
-			hw.commentln(indent, "%s (%vms) by %s() at %s, avg %.3fms/call",
-				freqStr, c.TotalDuration.InMillisecondsStr(),
-				c.FullName(),
-				htmlLink(calleeFile, fmt.Sprintf("line %d", callerAt), callerFile, callerAt),
-				c.TotalDuration.AverageInMilliseconds(c.Frequency))
-		}
+	}
+	if fp.Hits > 1 {
+		freqStr = fmt.Sprintf(" %d times:", fp.Hits)
+	}
+	hw.comment(indent, "Spent %vms within %v() which was called%s", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName(), freqStr)
+	if diff > 0 {
+		hw.commentln(indent, "%s", nilCallerStr)
+	}
+	calleeFile := fp.Filename
+	calleeFile = reporter.htmlLineFilename(calleeFile)
+	startHideAt := 0
+	if len(fp.Callers) > hideThreshold {
+		startHideAt = 5
+	}
+	for i, c := range fp.Callers {
 		if startHideAt > 0 {
-			hw.Html(`</div>`)
+			if i == startHideAt {
+				hw.HiderLink(indent, len(fp.Callers)-startHideAt)
+			}
 		}
+		callerFile, callerAt := c.Filename, c.At
+		callerFile = reporter.htmlLineFilename(callerFile)
+		freqStr = "once"
+		if c.Frequency > 1 {
+			freqStr = fmt.Sprintf("%d times", c.Frequency)
+		}
+		hw.commentln(indent, "%s (%vms) by %s() at %s, avg %.3fms/call",
+			freqStr, c.TotalDuration.InMillisecondsStr(),
+			c.FullName(),
+			htmlLink(calleeFile, fmt.Sprintf("line %d", callerAt), callerFile, callerAt),
+			c.TotalDuration.AverageInMilliseconds(c.Frequency))
+	}
+	if startHideAt > 0 {
+		hw.Html(`</div>`)
+	}
 	//}
 }
 
@@ -454,10 +454,10 @@ func (reporter *HtmlReporter) writeOneHtmlFile(file string, fileProfiles jsonpro
 
 	rootPath := pathToRoot(file)
 	jsFiles := []string{}
-	for _,file := range rootJsFiles {
-		jsFiles = append(jsFiles, rootPath + "../" + file)
+	for _, file := range rootJsFiles {
+		jsFiles = append(jsFiles, rootPath+"../"+file)
 	}
-	hw.HtmlWithCssBodyOpen(rootPath + "../style.css", jsFiles)
+	hw.HtmlWithCssBodyOpen(rootPath+"../style.css", jsFiles)
 	hw.Html(file)
 	hw.TableOpen(`id="function_table"`, `border="1"`, `cellpadding="0"`, `class="sortable"`)
 	hw.TheadOpen()
@@ -534,12 +534,12 @@ function toggleHide(e) {
 });`
 
 	jsFiles := map[string]string{
-		"jquery-min.js" : JQuery,
-		"jquery-tablesorter-min.js" : JQueryTableSorter,
-		"fprof.js" : fprofJs,
-		"tablesorter.js" : tableSorterJs,
-		"functions.js" : functionsJs,
-		"function.js" : functionJs,
+		"jquery-min.js":             JQuery,
+		"jquery-tablesorter-min.js": JQueryTableSorter,
+		"fprof.js":                  fprofJs,
+		"tablesorter.js":            tableSorterJs,
+		"functions.js":              functionsJs,
+		"function.js":               functionJs,
 	}
 
 	for filename, content := range jsFiles {
@@ -593,12 +593,12 @@ table.sortable thead tr .header {
 	cursor: pointer;
 }
 table.sortable thead tr .headerSortUp   { background-image: url(data:image/png;base64,`)
-fmt.Fprint(css, ImgAscending)
+	fmt.Fprint(css, ImgAscending)
 
-fmt.Fprint(css, `); }
+	fmt.Fprint(css, `); }
 table.sortable thead tr .headerSortDown { background-image: url(data:image/png;base64,`)
-fmt.Fprint(css, ImgDescending)
-fmt.Fprint(css, `); }
+	fmt.Fprint(css, ImgDescending)
+	fmt.Fprint(css, `); }
 `)
 }
 
