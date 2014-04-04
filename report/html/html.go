@@ -140,6 +140,7 @@ func (hw *HtmlWriter) HtmlClose() { hw.end("html") }
 func (hw *HtmlWriter) HeadOpen()  { hw.begin("head") }
 func (hw *HtmlWriter) LinkCss(cssFile string) {
 	hw.begin("link", `rel="stylesheet"`, `type="text/css"`, fmt.Sprintf(`href="%s"`, cssFile))
+	hw.indent--
 }
 func (hw *HtmlWriter) HeadClose()                { hw.end("head") }
 func (hw *HtmlWriter) BodyOpen()                 { hw.begin("body") }
