@@ -317,7 +317,7 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 	diff := fp.Hits - nCalls
 	if diff > 0 {
 		if diff == 1 {
-			nilCallerStr = fmt.Sprintf("once by unknown callers", diff)
+			nilCallerStr = fmt.Sprintf("once by an unknown caller")
 		} else {
 			nilCallerStr = fmt.Sprintf("%d times by unknown callers, avg %.3fms/call", diff, fp.GetTimeSpentByUnknownCallers().AverageInMilliseconds(diff))
 		}
