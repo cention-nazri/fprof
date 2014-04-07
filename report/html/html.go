@@ -419,7 +419,9 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		hw.Td("", "", "", "")
 		hw.TdOpen(`class="s"`)
 	} else {
-		hw.Td(lp.Hits, lp.TotalDuration.InMillisecondsStr())
+		ownTime := lp.TotalDuration
+		ownTime.Subtract(lp.TimeInFunctions)
+		hw.Td(lp.Hits, ownTime.InMillisecondsStr())
 		hw.Td(lp.CallsMade.EmptyIfZero(), lp.TimeInFunctions.NonZeroMsOrNone())
 		hw.TdOpen(`class="s"`)
 		if lp.Function != nil {
