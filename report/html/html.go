@@ -424,8 +424,11 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 		hw.Td(lp.Hits, ownTime.InMillisecondsStr())
 		hw.Td(lp.CallsMade.EmptyIfZero(), lp.TimeInFunctions.NonZeroMsOrNone())
 		hw.TdOpen(`class="s"`)
-		if lp.Function != nil {
-			reporter.showCallers(hw, lp.Function, indent)
+		if lp.Functions != nil {
+			functions := *lp.Functions
+			for _, f := range functions {
+				reporter.showCallers(hw, f, indent)
+			}
 		}
 	}
 
@@ -651,23 +654,24 @@ func (reporter *HtmlReporter) GenerateSourceCodeHtmlFiles(fileProfiles jsonprofi
 			if v == nil {
 				continue
 			}
-			if v.Function == nil {
+			if v.Functions == nil {
 				continue
 			}
-			fp := v.Function
-			if len(fp.Filename) == 0 {
-				log.Println("Got empty filename from func profile")
-			} else {
-				exists[fp.Filename] = fileExists(fp.Filename)
-			}
-			for _, caller := range fp.Callers {
-				if caller == nil {
-					continue
-				}
-				if len(caller.Filename) == 0 {
-					log.Println("Got empty filename from caller profile")
+			for _, fp := range *v.Functions {
+				if len(fp.Filename) == 0 {
+					log.Println("Got empty filename from func profile")
 				} else {
-					exists[caller.Filename] = fileExists(caller.Filename)
+					exists[fp.Filename] = fileExists(fp.Filename)
+				}
+				for _, caller := range fp.Callers {
+					if caller == nil {
+						continue
+					}
+					if len(caller.Filename) == 0 {
+						log.Println("Got empty filename from caller profile")
+					} else {
+						exists[caller.Filename] = fileExists(caller.Filename)
+					}
 				}
 			}
 		}

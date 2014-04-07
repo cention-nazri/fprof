@@ -42,7 +42,7 @@ type HitCount struct {
 
 type Counter uint64
 type LineProfile struct {
-	Function *FunctionProfile `json:"function"`
+	Functions *FunctionProfileSlice `json:"functions"`
 	HitCount
 	TotalDuration TimeSpec `json:"total_duration"`
 	FunctionCalls FunctionCallSlice
@@ -318,16 +318,17 @@ func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 		//	continue
 		//}
 		for lineNo, lineProfile := range lineProfiles {
-			if lineProfile == nil || lineProfile.Function == nil {
+			if lineProfile == nil || lineProfile.Functions == nil {
 				continue
 			}
-			f := lineProfile.Function
-			f.Filename = file
-			f.StartLine = Counter(lineNo)
-			f.CalculateOwnTime()
-			calls = append(calls, f)
-			sort.Stable(f.Callers)
-			fileProfiles.injectCallerDurations(f)
+			for _, f := range *lineProfile.Functions {
+				f.Filename = file
+				f.StartLine = Counter(lineNo)
+				f.CalculateOwnTime()
+				calls = append(calls, f)
+				sort.Stable(f.Callers)
+				fileProfiles.injectCallerDurations(f)
+			}
 		}
 	}
 	return calls

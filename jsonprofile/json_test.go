@@ -89,22 +89,24 @@ func TestDecodeFromBytes(tt *testing.T) {
 		"/some/file" : [
 			null,
 			{
-				"function": {
-					"filename" : "/filename",
-					"start_line" : 88,
-					"callers": null,
-					"exclusive_duration": {
-						"nsec": 0,
-						"sec": 0
-					},
-					"hits": 1,
-					"inclusive_duration": {
-						"nsec": 732324,
-						"sec": 0
-					},
-					"is_native": false,
-					"name": "FunctionName"
-				},
+				"functions": [
+					{
+						"filename" : "/filename",
+						"start_line" : 88,
+						"callers": null,
+						"exclusive_duration": {
+							"nsec": 0,
+							"sec": 0
+						},
+						"hits": 1,
+						"inclusive_duration": {
+							"nsec": 732324,
+							"sec": 0
+						},
+						"is_native": false,
+						"name": "FunctionName"
+					}
+				],
 				"hits": 1,
 				"total_duration": {
 					"nsec": 1668,
@@ -140,15 +142,16 @@ func TestDecodeFromBytes(tt *testing.T) {
 	failIf(Lines[1].TotalDuration.Sec != 0)
 	failIf(Lines[1].TotalDuration.Nsec != 1668)
 	failIf(Lines[1].Hits != 1)
-	failIf(Lines[1].Function.Name != "FunctionName")
-	failIf(Lines[1].Function.Hits != 1)
-	failIf(Lines[1].Function.IsNative == true)
-	failIf(Lines[1].Function.InclusiveDuration.Sec != 0)
-	failIf(Lines[1].Function.InclusiveDuration.Nsec != 732324)
-	failIf(Lines[1].Function.ExclusiveDuration.Sec != 0)
-	failIf(Lines[1].Function.ExclusiveDuration.Nsec != 0)
-	failIf(Lines[1].Function.Filename != "/filename")
-	failIf(Lines[1].Function.StartLine != 88)
+	f := (*Lines[1].Functions)[0]
+	failIf(f.Name != "FunctionName")
+	failIf(f.Hits != 1)
+	failIf(f.IsNative == true)
+	failIf(f.InclusiveDuration.Sec != 0)
+	failIf(f.InclusiveDuration.Nsec != 732324)
+	failIf(f.ExclusiveDuration.Sec != 0)
+	failIf(f.ExclusiveDuration.Nsec != 0)
+	failIf(f.Filename != "/filename")
+	failIf(f.StartLine != 88)
 
 }
 
