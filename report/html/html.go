@@ -172,7 +172,12 @@ func (hw *HtmlWriter) TdCloseNoIndent() {
 	hw.Html("</td>\n")
 	hw.indent--
 }
-func (hw *HtmlWriter) TdWithClass(class string, content string) {
+func (hw *HtmlWriter) TdWithClassOrEmpty(class string, content string) {
+	if len(content) == 0 {
+		hw.Td("")
+		return
+	}
+
 	hw.TdOpen(`class="` + class + `"`)
 	hw.write(content)
 	hw.TdCloseNoIndent()
@@ -429,15 +434,19 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 	} else {
 		ownTime := lp.TotalDuration
 		ownTime.Subtract(lp.TimeInFunctions)
-		hw.Td(lp.Hits)
+		if lp.Hits > 0 {
+			hw.Td(lp.Hits)
+		} else {
+			hw.Td("")
+		}
 
-		hw.TdWithClass(
+		hw.TdWithClassOrEmpty(
 			getSeverityClass(ownTime.InMilliseconds(), ownTimeStats),
-			ownTime.InMillisecondsStr(),
+			ownTime.NonZeroMsOrNone(),
 		)
 
 		hw.Td(lp.CallsMade.EmptyIfZero())
-		hw.TdWithClass(getSeverityClass(lp.TimeInFunctions.InMilliseconds(), otherTimeStats), lp.TimeInFunctions.NonZeroMsOrNone())
+		hw.TdWithClassOrEmpty(getSeverityClass(lp.TimeInFunctions.InMilliseconds(), otherTimeStats), lp.TimeInFunctions.NonZeroMsOrNone())
 
 		hw.TdOpen(`class="s"`)
 		if lp.Functions != nil {
@@ -831,12 +840,12 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 				fc.CountCallingPlaces(),
 				fc.CountCallingFiles())
 
-			hw.TdWithClass(
+			hw.TdWithClassOrEmpty(
 				getSeverityClass(exclMS, ownTimeStat),
 				fc.OwnTime.NonZeroMsOrNone(),
 			)
 
-			hw.TdWithClass(
+			hw.TdWithClassOrEmpty(
 				getSeverityClass(inclMS, incTimeStat),
 				fc.InclusiveDuration.NonZeroMsOrNone(),
 			)
