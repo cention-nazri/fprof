@@ -796,8 +796,8 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	jsFiles := []string{
 		"jquery-min.js",
 		"jquery-tablesorter-min.js",
-		"jquery-tablesorter-min.js",
 		"tablesorter.js",
+		"fprof.js",
 		"function.js",
 	}
 
