@@ -16,7 +16,12 @@ import (
 
 import "fprof/report"
 import "fprof/helper"
+import "fprof/stats"
 import "fprof/jsonprofile"
+
+var SEVERITY_LOW = .5
+var SEVERITY_MEDIUM = 1.0
+var SEVERITY_HIGH = 2.0
 
 type HtmlReporter struct {
 	report.Report
@@ -167,12 +172,17 @@ func (hw *HtmlWriter) TdCloseNoIndent() {
 	hw.Html("</td>\n")
 	hw.indent--
 }
-func (hw *HtmlWriter) DivOpen(attrs ...string)   { hw.begin("div", attrs...) }
-func (hw *HtmlWriter) DivClose()                 { hw.end("div") }
-func (hw *HtmlWriter) Th(v ...interface{})       { hw.repeatIn("th", v...) }
-func (hw *HtmlWriter) Td(v ...interface{})       { hw.repeatIn("td", v...) }
-func (hw *HtmlWriter) Tr(v ...interface{})       { hw.repeatIn("tr", v...) }
-func (hw *HtmlWriter) Div(v ...interface{})      { hw.repeatIn("div", v...) }
+func (hw *HtmlWriter) TdWithClass(class string, content string) {
+	hw.TdOpen(`class="` + class + `"`)
+	hw.write(content)
+	hw.TdCloseNoIndent()
+}
+func (hw *HtmlWriter) DivOpen(attrs ...string) { hw.begin("div", attrs...) }
+func (hw *HtmlWriter) DivClose()               { hw.end("div") }
+func (hw *HtmlWriter) Th(v ...interface{})     { hw.repeatIn("th", v...) }
+func (hw *HtmlWriter) Td(v ...interface{})     { hw.repeatIn("td", v...) }
+func (hw *HtmlWriter) Tr(v ...interface{})     { hw.repeatIn("tr", v...) }
+func (hw *HtmlWriter) Div(v ...interface{})    { hw.repeatIn("div", v...) }
 
 func New(reportDir string) *HtmlReporter {
 	helper.CreateDir(reportDir)
@@ -399,7 +409,7 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 	}
 }
 
-func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, scanner *bufio.Scanner) {
+func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, scanner *bufio.Scanner, ownTimeStats, otherTimeStats *stats.Stats) {
 	hasSourceLine := false
 	sourceLine := ""
 	indent := ""
@@ -419,8 +429,16 @@ func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *j
 	} else {
 		ownTime := lp.TotalDuration
 		ownTime.Subtract(lp.TimeInFunctions)
-		hw.Td(lp.Hits, ownTime.InMillisecondsStr())
-		hw.Td(lp.CallsMade.EmptyIfZero(), lp.TimeInFunctions.NonZeroMsOrNone())
+		hw.Td(lp.Hits)
+
+		hw.TdWithClass(
+			getSeverityClass(ownTime.InMilliseconds(), ownTimeStats),
+			ownTime.InMillisecondsStr(),
+		)
+
+		hw.Td(lp.CallsMade.EmptyIfZero())
+		hw.TdWithClass(getSeverityClass(lp.TimeInFunctions.InMilliseconds(), otherTimeStats), lp.TimeInFunctions.NonZeroMsOrNone())
+
 		hw.TdOpen(`class="s"`)
 		if lp.Functions != nil {
 			functions := *lp.Functions
@@ -482,10 +500,31 @@ func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfil
 		lineProfiles = makeEmptyLineProfiles(file)
 	}
 
+	timesOnLine := make([]float64, 0, len(lineProfiles))
+	timesInFunction := make([]float64, 0, len(lineProfiles))
+	for _, lp := range lineProfiles {
+		if lp == nil {
+			continue
+		}
+		ownTime := lp.TotalDuration
+		ownTime.Subtract(lp.TimeInFunctions)
+		d := ownTime.InMilliseconds()
+		if d > 0 {
+			timesOnLine = append(timesOnLine, d)
+		}
+		d = lp.TimeInFunctions.InMilliseconds()
+		if d > 0 {
+			timesInFunction = append(timesInFunction, d)
+		}
+	}
+	ownTimeStats := stats.MadMedian(timesOnLine)
+	otherTimeStats := stats.MadMedian(timesInFunction)
+
 	hw.TbodyOpen()
 	for i, lp := range lineProfiles {
 		lineNo := i + 1
-		reporter.writeOneTableRow(hw, lineNo, lp, scanner)
+		// TODO refactor: don't pass scanner, pass the line
+		reporter.writeOneTableRow(hw, lineNo, lp, scanner, ownTimeStats, otherTimeStats)
 	}
 	hw.TbodyClose()
 	hw.TableClose()
@@ -579,6 +618,18 @@ td.s {
 }
 .hide {
 	display: none;
+}
+td.s_low {
+	background: limegreen;
+}
+td.s_medium {
+	background: darkorange;
+}
+td.s_high {
+	background: lightsalmon;
+}
+td.s_bad {
+	background: salmon;
 }
 
 table.sortable thead tr .header {
@@ -690,12 +741,48 @@ func (hw *HtmlWriter) HtmlWithCssBodyOpen(cssFile string, jsFiles []string) {
 	hw.BodyOpen()
 }
 
+func getSeverityClass(v float64, stat *stats.Stats) string {
+	if stat.MAD == 0 {
+		return "s_low"
+	}
+	d := v - stat.Median
+	severity := d / stat.MAD
+	if severity < SEVERITY_LOW {
+		return "s_low"
+	}
+	if severity < SEVERITY_MEDIUM {
+		return "s_medium"
+	}
+	if severity < SEVERITY_HIGH {
+		return "s_high"
+	}
+	return "s_bad"
+}
+
 func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	fileProfiles := p.FileProfileMap
 	reporter.GenerateCssFile()
 	reporter.GenerateJsFiles()
 	log.Println("Cross referencing function call metrics...")
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
+
+	ownTimes := make([]float64, 0, len(functionCalls))
+	incTimes := make([]float64, 0, len(functionCalls))
+	for _, fc := range functionCalls {
+		if fc == nil {
+			continue
+		}
+		d := fc.OwnTime.InMilliseconds()
+		if d > 0 {
+			ownTimes = append(ownTimes, d)
+		}
+		d = fc.InclusiveDuration.InMilliseconds()
+		if d > 0 {
+			incTimes = append(incTimes, d)
+		}
+	}
+	ownTimeStat := stats.MadMedian(ownTimes)
+	incTimeStat := stats.MadMedian(incTimes)
 
 	jsFiles := []string{
 		"jquery-min.js",
@@ -742,10 +829,19 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 			}
 			hw.Td(fc.Hits,
 				fc.CountCallingPlaces(),
-				fc.CountCallingFiles(),
+				fc.CountCallingFiles())
+
+			hw.TdWithClass(
+				getSeverityClass(exclMS, ownTimeStat),
 				fc.OwnTime.NonZeroMsOrNone(),
+			)
+
+			hw.TdWithClass(
+				getSeverityClass(inclMS, incTimeStat),
 				fc.InclusiveDuration.NonZeroMsOrNone(),
-				ieRatio)
+			)
+
+			hw.Td(ieRatio)
 
 			hw.TdOpen(`class="s"`)
 			hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))

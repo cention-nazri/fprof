@@ -44,7 +44,7 @@ func MedianAbsoluteDeviation(values []float64) (float64, float64) {
 }
 
 func MadMedian(values []float64) *Stats {
-	MAD, Median := MedianAbsoluteDeviation(values)
-	s := &Stats{MAD, Median}
+	mad, median := MedianAbsoluteDeviation(values)
+	s := &Stats{mad, median}
 	return s
 }
