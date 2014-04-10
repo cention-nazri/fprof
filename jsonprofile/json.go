@@ -317,13 +317,12 @@ func (fileProfiles FileProfile) getFunctionCalls() FunctionProfileSlice {
 		//if file == "eval()" {
 		//	continue
 		//}
-		for lineNo, lineProfile := range lineProfiles {
+		for _, lineProfile := range lineProfiles {
 			if lineProfile == nil || lineProfile.Functions == nil {
 				continue
 			}
 			for _, f := range *lineProfile.Functions {
 				f.Filename = file
-				f.StartLine = Counter(lineNo)
 				f.CalculateOwnTime()
 				calls = append(calls, f)
 				sort.Stable(f.Callers)
