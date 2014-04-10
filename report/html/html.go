@@ -18,8 +18,6 @@ import "fprof/report"
 import "fprof/helper"
 import "fprof/jsonprofile"
 
-var indent = 0
-
 type HtmlReporter struct {
 	report.Report
 }
