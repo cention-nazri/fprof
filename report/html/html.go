@@ -790,7 +790,7 @@ func getMADStats(functionCalls jsonprofile.FunctionProfileSlice) (*stats.Stats, 
 	return ownTimeStat, incTimeStat
 }
 
-func (reporter *HtmlReporter)writeOneFunctionMetric(hw *HtmlWriter, fc *jsonprofile.FunctionProfile, ownTimeStat *stats.Stats, incTimeStat *stats.Stats) {
+func (reporter *HtmlReporter) writeOneFunctionMetric(hw *HtmlWriter, fc *jsonprofile.FunctionProfile, exists map[string]bool, ownTimeStat *stats.Stats, incTimeStat *stats.Stats) {
 	ieRatio := ""
 	inclMS := fc.InclusiveDuration.InMilliseconds()
 	exclMS := fc.OwnTime.InMilliseconds()
@@ -815,7 +815,11 @@ func (reporter *HtmlReporter)writeOneFunctionMetric(hw *HtmlWriter, fc *jsonprof
 	hw.Td(ieRatio)
 
 	hw.TdOpen(`class="s"`)
-	hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
+	if exists[fc.Filename] {
+		hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
+	} else {
+		hw.write(fc.FullName())
+	}
 	hw.TdCloseNoIndent()
 	hw.TrClose()
 }
@@ -836,10 +840,10 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 	hw.TheadClose()
 	hw.TbodyOpen()
 	for _, fc := range functionCalls {
-		if fc == nil || !exists[fc.Filename] {
+		if fc == nil {
 			continue
 		}
-		reporter.writeOneFunctionMetric(hw, fc, ownTimeStat, incTimeStat)
+		reporter.writeOneFunctionMetric(hw, fc, exists, ownTimeStat, incTimeStat)
 	}
 	hw.TbodyClose()
 	hw.TableClose()
