@@ -818,6 +818,7 @@ func (reporter *HtmlReporter) writeOneFunctionMetric(hw *HtmlWriter, fc *jsonpro
 	if exists[fc.Filename] {
 		hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
 	} else {
+		reporter.showCallers(hw, fc, "")
 		hw.write(fc.FullName())
 	}
 	hw.TdCloseNoIndent()
