@@ -39,6 +39,7 @@ func TestGetRelativePathTo(t *testing.T) {
 	testGetRelativePathTo(t, "a/a.txt", "b/b.txt", "../a/a.txt")
 	testGetRelativePathTo(t, "a/a.txt", ".", "a/a.txt")
 	testGetRelativePathTo(t, "files/a/elephant/foo.html", "files/a/b/c/file.html", "../../elephant/foo.html")
+	testGetRelativePathTo(t, "files//home/foo/baz.html", "files/Obj.constructor.html", "home/foo/baz.html")
 }
 
 func testStripCommonPath(t *testing.T, path1, path2, e1, e2 string) {

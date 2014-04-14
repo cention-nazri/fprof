@@ -303,7 +303,9 @@ func getRelativePathTo(to, from string) string {
 
 	rto, rfrom := stripCommonPath(to, from)
 	r := ""
-	if path.Dir(rto) != "." {
+	if path.Dir(rfrom) == "." {
+		r = rto
+	} else if path.Dir(rto) != "." {
 		r = "../" + pathToRoot(path.Dir(rfrom)) + rto
 	} else {
 		r = pathToRoot(path.Dir(rfrom)) + rto
@@ -343,7 +345,9 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 		hw.commentln(indent, "%s", nilCallerStr)
 	}
 	calleeFile := fp.Filename
-	calleeFile = reporter.htmlLineFilename(calleeFile)
+	if path.IsAbs(calleeFile) {
+		calleeFile = reporter.htmlLineFilename(calleeFile)
+	}
 	startHideAt := 0
 	if len(fp.Callers) > hideThreshold {
 		startHideAt = 5
@@ -355,7 +359,9 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 			}
 		}
 		callerFile, callerAt := c.Filename, c.At
-		callerFile = reporter.htmlLineFilename(callerFile)
+		if path.IsAbs(callerFile) {
+			callerFile = reporter.htmlLineFilename(callerFile)
+		}
 		freqStr = "once"
 		if c.Frequency > 1 {
 			freqStr = fmt.Sprintf("%d times", c.Frequency)
