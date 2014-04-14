@@ -768,7 +768,7 @@ func getSeverityClass(v float64, stat *stats.Stats) string {
 	return "s_bad"
 }
 
-func getMADStat(functionCalls jsonprofile.FunctionProfileSlice) (*stats.Stats, *stats.Stats) {
+func getMADStats(functionCalls jsonprofile.FunctionProfileSlice) (*stats.Stats, *stats.Stats) {
 	ownTimes := make([]float64, 0, len(functionCalls))
 	incTimes := make([]float64, 0, len(functionCalls))
 	for _, fc := range functionCalls {
@@ -821,7 +821,7 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
 	defer hw.writeToDiskAsync(nil)
 
-	ownTimeStat, incTimeStat := getMADStat(functionCalls)
+	ownTimeStat, incTimeStat := getMADStats(functionCalls)
 
 	hw.HtmlWithCssBodyOpen("style.css", jsFiles)
 	hw.Div("Start: " + p.Start.Time())
