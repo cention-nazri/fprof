@@ -768,12 +768,9 @@ func getSeverityClass(v float64, stat *stats.Stats) string {
 	return "s_bad"
 }
 
-func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
-	fileProfiles := p.FileProfileMap
-	reporter.GenerateCssFile()
-	reporter.GenerateJsFiles()
-	log.Println("Cross referencing function call metrics...")
-	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
+func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, jsFiles []string, exists map[string]bool, functionCalls jsonprofile.FunctionProfileSlice) {
+	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
+	defer hw.writeToDiskAsync(nil)
 
 	ownTimes := make([]float64, 0, len(functionCalls))
 	incTimes := make([]float64, 0, len(functionCalls))
@@ -793,23 +790,6 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	ownTimeStat := stats.MadMedian(ownTimes)
 	incTimeStat := stats.MadMedian(incTimes)
 
-	jsFiles := []string{
-		"jquery-min.js",
-		"jquery-tablesorter-min.js",
-		"tablesorter.js",
-		"fprof.js",
-		"function.js",
-	}
-
-	exists := reporter.GenerateSourceCodeHtmlFiles(fileProfiles, jsFiles)
-	done := make(chan bool)
-	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
-	defer func() {
-		hw.writeToDiskAsync(done)
-		<-done
-	}()
-
-	jsFiles[4] = "functions.js"
 	hw.HtmlWithCssBodyOpen("style.css", jsFiles)
 	hw.Div("Start: " + p.Start.Time())
 	hw.Div("Stop: " + p.Stop.Time())
@@ -862,6 +842,26 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	hw.TableClose()
 	hw.BodyClose()
 	hw.HtmlClose()
+}
+
+func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
+	fileProfiles := p.FileProfileMap
+	reporter.GenerateCssFile()
+	reporter.GenerateJsFiles()
+	log.Println("Cross referencing function call metrics...")
+	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
+
+	jsFiles := []string{
+		"jquery-min.js",
+		"jquery-tablesorter-min.js",
+		"tablesorter.js",
+		"fprof.js",
+		"function.js",
+	}
+
+	exists := reporter.GenerateSourceCodeHtmlFiles(fileProfiles, jsFiles)
+	jsFiles[4] = "functions.js"
+	reporter.GenerateFunctionsHtmlFile(p, jsFiles, exists, functionCalls)
 }
 
 func (reporter *HtmlReporter) Epilog() {
