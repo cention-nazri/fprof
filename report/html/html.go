@@ -414,7 +414,7 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 	}
 }
 
-func (reporter *HtmlReporter) writeOneTableRow(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, scanner *bufio.Scanner, ownTimeStats, otherTimeStats *stats.Stats) {
+func (reporter *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, scanner *bufio.Scanner, ownTimeStats, otherTimeStats *stats.Stats) {
 	hasSourceLine := false
 	sourceLine := ""
 	indent := ""
@@ -533,7 +533,7 @@ func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfil
 	for i, lp := range lineProfiles {
 		lineNo := i + 1
 		// TODO refactor: don't pass scanner, pass the line
-		reporter.writeOneTableRow(hw, lineNo, lp, scanner, ownTimeStats, otherTimeStats)
+		reporter.writeOneSourceCodeLine(hw, lineNo, lp, scanner, ownTimeStats, otherTimeStats)
 	}
 	hw.TbodyClose()
 	hw.TableClose()
