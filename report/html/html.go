@@ -797,6 +797,7 @@ func (reporter *HtmlReporter)writeOneFunctionMetric(hw *HtmlWriter, fc *jsonprof
 	if inclMS > 0 {
 		ieRatio = fmt.Sprintf("%3.1f", exclMS*100/inclMS)
 	}
+	hw.TrOpen()
 	hw.Td(fc.Hits,
 		fc.CountCallingPlaces(),
 		fc.CountCallingFiles())
@@ -815,6 +816,8 @@ func (reporter *HtmlReporter)writeOneFunctionMetric(hw *HtmlWriter, fc *jsonprof
 
 	hw.TdOpen(`class="s"`)
 	hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
+	hw.TdCloseNoIndent()
+	hw.TrClose()
 }
 
 func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, jsFiles []string, exists map[string]bool, functionCalls jsonprofile.FunctionProfileSlice) {
@@ -832,21 +835,11 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 	hw.Th("Calls", "Places", "Files", "Self (ms)", "Inclusive (ms)", "Incl/Excl %%", "Function")
 	hw.TheadClose()
 	hw.TbodyOpen()
-	na := "n/a"
 	for _, fc := range functionCalls {
 		if fc == nil || !exists[fc.Filename] {
 			continue
 		}
-		hw.TrOpen()
-		if fc == nil {
-			hw.Td(na, na, na, na, na, na)
-			hw.TdOpen(`class="s"`)
-			hw.write(na)
-		} else {
-			reporter.writeOneFunctionMetric(hw, fc, ownTimeStat, incTimeStat)
-		}
-		hw.TdCloseNoIndent()
-		hw.TrClose()
+		reporter.writeOneFunctionMetric(hw, fc, ownTimeStat, incTimeStat)
 	}
 	hw.TbodyClose()
 	hw.TableClose()
