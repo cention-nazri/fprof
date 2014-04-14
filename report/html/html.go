@@ -790,6 +790,33 @@ func getMADStat(functionCalls jsonprofile.FunctionProfileSlice) (*stats.Stats, *
 	return ownTimeStat, incTimeStat
 }
 
+func (reporter *HtmlReporter)writeOneFunctionMetric(hw *HtmlWriter, fc *jsonprofile.FunctionProfile, ownTimeStat *stats.Stats, incTimeStat *stats.Stats) {
+	ieRatio := ""
+	inclMS := fc.InclusiveDuration.InMilliseconds()
+	exclMS := fc.OwnTime.InMilliseconds()
+	if inclMS > 0 {
+		ieRatio = fmt.Sprintf("%3.1f", exclMS*100/inclMS)
+	}
+	hw.Td(fc.Hits,
+		fc.CountCallingPlaces(),
+		fc.CountCallingFiles())
+
+	hw.TdWithClassOrEmpty(
+		getSeverityClass(exclMS, ownTimeStat),
+		fc.OwnTime.NonZeroMsOrNone(),
+	)
+
+	hw.TdWithClassOrEmpty(
+		getSeverityClass(inclMS, incTimeStat),
+		fc.InclusiveDuration.NonZeroMsOrNone(),
+	)
+
+	hw.Td(ieRatio)
+
+	hw.TdOpen(`class="s"`)
+	hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
+}
+
 func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, jsFiles []string, exists map[string]bool, functionCalls jsonprofile.FunctionProfileSlice) {
 	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
 	defer hw.writeToDiskAsync(nil)
@@ -816,30 +843,7 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 			hw.TdOpen(`class="s"`)
 			hw.write(na)
 		} else {
-			ieRatio := ""
-			inclMS := fc.InclusiveDuration.InMilliseconds()
-			exclMS := fc.OwnTime.InMilliseconds()
-			if inclMS > 0 {
-				ieRatio = fmt.Sprintf("%3.1f", exclMS*100/inclMS)
-			}
-			hw.Td(fc.Hits,
-				fc.CountCallingPlaces(),
-				fc.CountCallingFiles())
-
-			hw.TdWithClassOrEmpty(
-				getSeverityClass(exclMS, ownTimeStat),
-				fc.OwnTime.NonZeroMsOrNone(),
-			)
-
-			hw.TdWithClassOrEmpty(
-				getSeverityClass(inclMS, incTimeStat),
-				fc.InclusiveDuration.NonZeroMsOrNone(),
-			)
-
-			hw.Td(ieRatio)
-
-			hw.TdOpen(`class="s"`)
-			hw.write(htmlLink(".", fc.FullName(), reporter.htmlLineFilename(fc.Filename), fc.StartLine))
+			reporter.writeOneFunctionMetric(hw, fc, ownTimeStat, incTimeStat)
 		}
 		hw.TdCloseNoIndent()
 		hw.TrClose()
