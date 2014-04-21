@@ -9,7 +9,7 @@ import (
 	"path"
 )
 
-import "fprof/helper"
+import "fprof/osutil"
 import "fprof/report"
 import "fprof/report/html"
 import "fprof/json"
@@ -55,7 +55,7 @@ func main() {
 
 func openInBrowser(htmlfile string) {
 	log.Println(browser, htmlfile)
-	err := helper.RunCommand(browser, htmlfile)
+	err := osutil.RunCommand(browser, htmlfile)
 	if err != nil {
 		log.Fatal(browser, ":", err)
 	}
@@ -93,7 +93,7 @@ func generateMetricFiles(profileFor report.LineMetricForFiles) {
 	filePrefix := reportDir + "/" + report.FilesDir
 	for filename, lineMetrics := range profileFor {
 		profileFilename := filePrefix + filename
-		helper.CreateDir(path.Dir(profileFilename))
+		osutil.CreateDir(path.Dir(profileFilename))
 		file, err := os.Create(profileFilename)
 		if err != nil {
 			log.Fatal(profileFilename, ":", err)
@@ -101,7 +101,7 @@ func generateMetricFiles(profileFor report.LineMetricForFiles) {
 		defer file.Close()
 
 		printer := lineMetricGenerator(file, lineMetrics)
-		helper.ForEachLineInFile(filename, printer)
+		osutil.ForEachLineInFile(filename, printer)
 		printer(lastLine+1, "")
 	}
 }

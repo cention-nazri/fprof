@@ -15,7 +15,7 @@ import (
 )
 
 import "fprof/report"
-import "fprof/helper"
+import "fprof/osutil"
 import "fprof/stats"
 import "fprof/json"
 
@@ -38,7 +38,7 @@ type HtmlWriter struct {
 func NewHtmlWriter(sourceFile, htmlfile string) *HtmlWriter {
 	hw := HtmlWriter{sourceFile,
 		htmlfile,
-		helper.CreateFile(htmlfile),
+		osutil.CreateFile(htmlfile),
 		0,
 		new(bytes.Buffer),
 	}
@@ -190,7 +190,7 @@ func (hw *HtmlWriter) Tr(v ...interface{})     { hw.repeatIn("tr", v...) }
 func (hw *HtmlWriter) Div(v ...interface{})    { hw.repeatIn("div", v...) }
 
 func New(reportDir string) *HtmlReporter {
-	helper.CreateDir(reportDir)
+	osutil.CreateDir(reportDir)
 	reporter := HtmlReporter{}
 	reporter.ReportDir = reportDir
 	return &reporter
@@ -230,7 +230,7 @@ func (reporter *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFil
 			log.Fatal(line, " is more than line count for file", filename, cap(lineMetrics))
 		}
 	} else {
-		lineCount := helper.GetLineCount(filename)
+		lineCount := osutil.GetLineCount(filename)
 		lineMetrics = make([]report.LineMetric, lineCount+1)
 		profileFor[filename] = lineMetrics
 	}
@@ -472,7 +472,7 @@ func (reporter *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int,
 }
 
 func makeEmptyLineProfiles(file string) []*json.LineProfile {
-	return make([]*json.LineProfile, helper.GetLineCount(file))
+	return make([]*json.LineProfile, osutil.GetLineCount(file))
 }
 
 func fileExists(file string) bool {
@@ -484,7 +484,7 @@ func fileExists(file string) bool {
 
 func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfiles json.FileProfile, rootJsFiles []string, done chan bool) {
 	htmlfile := reporter.ReportDir + "/" + reporter.htmlLineFilename(file)
-	helper.CreateDir(path.Dir(htmlfile))
+	osutil.CreateDir(path.Dir(htmlfile))
 	hw := NewHtmlWriter(file, htmlfile)
 	defer hw.writeToDiskAsync(done)
 
@@ -597,13 +597,13 @@ function toggleHide(e) {
 		path.Join(d, "function.js"):               functionJs,
 	}
 
-	helper.CreateFiles(jsFiles)
+	osutil.CreateFiles(jsFiles)
 }
 
 func (reporter *HtmlReporter) GenerateCssFile() {
 	cssFile := reporter.ReportDir + "/css/style.css"
-	helper.CreateDir(path.Dir(cssFile))
-	css := helper.CreateFile(cssFile)
+	osutil.CreateDir(path.Dir(cssFile))
+	css := osutil.CreateFile(cssFile)
 	fmt.Fprint(css, `body {
 	font-family: sans-serif;
 }
