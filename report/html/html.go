@@ -493,7 +493,7 @@ func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfil
 	for _, file := range rootJsFiles {
 		jsFiles = append(jsFiles, rootPath+"../"+file)
 	}
-	hw.HtmlWithCssBodyOpen(rootPath+"../style.css", jsFiles)
+	hw.HtmlWithCssBodyOpen(rootPath+"../css/style.css", jsFiles)
 	hw.Html(file)
 	hw.TableOpen(`id="function_table"`, `border="1"`, `cellpadding="0"`, `class="sortable"`)
 	hw.TheadOpen()
@@ -581,23 +581,23 @@ function toggleHide(e) {
 	$("#function_table").tablesorter();
 });`
 
+	d := reporter.GetPathTo("js")
 	jsFiles := map[string]string{
-		"jquery-min.js":             JQuery,
-		"jquery-tablesorter-min.js": JQueryTableSorter,
-		"fprof.js":                  fprofJs,
-		"tablesorter.js":            tableSorterJs,
-		"functions.js":              functionsJs,
-		"function.js":               functionJs,
+		path.Join(d, "jquery-min.js"):             JQuery,
+		path.Join(d, "jquery-tablesorter-min.js"): JQueryTableSorter,
+		path.Join(d, "fprof.js"):                  fprofJs,
+		path.Join(d, "tablesorter.js"):            tableSorterJs,
+		path.Join(d, "functions.js"):              functionsJs,
+		path.Join(d, "function.js"):               functionJs,
 	}
 
-	for filename, content := range jsFiles {
-		file := helper.CreateFile(reporter.GetPathTo(filename))
-		fmt.Fprint(file, content)
-	}
+	helper.CreateFiles(jsFiles)
 }
 
 func (reporter *HtmlReporter) GenerateCssFile() {
-	css := helper.CreateFile(reporter.ReportDir + "/style.css")
+	cssFile := reporter.ReportDir + "/css/style.css"
+	helper.CreateDir(path.Dir(cssFile))
+	css := helper.CreateFile(cssFile)
 	fmt.Fprint(css, `body {
 	font-family: sans-serif;
 }
@@ -837,7 +837,7 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 
 	ownTimeStat, incTimeStat := getMADStats(functionCalls)
 
-	hw.HtmlWithCssBodyOpen("style.css", jsFiles)
+	hw.HtmlWithCssBodyOpen("css/style.css", jsFiles)
 	hw.Div("Start: " + p.Start.Time())
 	hw.Div("Stop: " + p.Stop.Time())
 	hw.Div("Duration: " + p.Duration.InMillisecondsStr() + "ms")
@@ -866,15 +866,15 @@ func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
 	functionCalls := fileProfiles.GetFunctionsSortedByExlusiveTime()
 
 	jsFiles := []string{
-		"jquery-min.js",
-		"jquery-tablesorter-min.js",
-		"tablesorter.js",
-		"fprof.js",
-		"function.js",
+		"js/jquery-min.js",
+		"js/jquery-tablesorter-min.js",
+		"js/tablesorter.js",
+		"js/fprof.js",
+		"js/function.js",
 	}
 
 	exists := reporter.GenerateSourceCodeHtmlFiles(fileProfiles, jsFiles)
-	jsFiles[4] = "functions.js"
+	jsFiles[4] = "js/functions.js"
 	reporter.GenerateFunctionsHtmlFile(p, jsFiles, exists, functionCalls)
 }
 

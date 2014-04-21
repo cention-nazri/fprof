@@ -2,10 +2,12 @@ package helper
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+	"path"
 )
 
 type fileLineHandler func(line int, text string)
@@ -60,4 +62,12 @@ func RunCommand(name string, arg ...string) error {
 	}
 
 	return cmd.Wait()
+}
+
+func CreateFiles(files map[string]string) {
+	for filename, content := range files {
+		CreateDir(path.Dir(filename))
+		file := CreateFile(filename)
+		fmt.Fprint(file, content)
+	}
 }
