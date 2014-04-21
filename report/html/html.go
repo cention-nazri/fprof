@@ -856,14 +856,14 @@ func writeSeverityLegend(hw *HtmlWriter) {
 	hw.DivOpen(`class="legend"`)
 	hw.Html("Severity:")
 	hw.TableOpen(tableAttrs...)
+	hw.TrOpen()
 	for _, u := range legend {
-		hw.TrOpen()
 		for k, v := range u {
 			hw.TdWithClassOrEmpty(k, " ")
 			hw.Td(v)
 		}
-		hw.TrClose()
 	}
+	hw.TrClose()
 	hw.TableClose()
 	hw.DivClose()
 }
