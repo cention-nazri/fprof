@@ -494,7 +494,10 @@ func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfil
 		jsFiles = append(jsFiles, rootPath+"../"+file)
 	}
 	hw.HtmlWithCssBodyOpen(rootPath+"../css/style.css", jsFiles)
+	hw.DivOpen(`class="left"`)
 	hw.Html(file)
+	hw.DivClose()
+	writeSeverityLegend(hw)
 	hw.TableOpen(`id="function_table"`, `border="1"`, `cellpadding="0"`, `class="sortable"`)
 	hw.TheadOpen()
 	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions")
@@ -603,6 +606,9 @@ func (reporter *HtmlReporter) GenerateCssFile() {
 	css := helper.CreateFile(cssFile)
 	fmt.Fprint(css, `body {
 	font-family: sans-serif;
+}
+.left {
+	float: left;
 }
 div.legend {
 	float: right;
@@ -869,7 +875,7 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 	ownTimeStat, incTimeStat := getMADStats(functionCalls)
 
 	hw.HtmlWithCssBodyOpen("css/style.css", jsFiles)
-	hw.DivOpen(`style="float:left"`)
+	hw.DivOpen(`class="left"`)
 	hw.Div("Start: " + p.Start.Time())
 	hw.Div("Stop: " + p.Stop.Time())
 	hw.Div("Duration: " + p.Duration.InMillisecondsStr() + "ms")
