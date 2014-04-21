@@ -497,7 +497,10 @@ func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfil
 	hw.Html(file)
 	hw.TableOpen(`id="function_table"`, `border="1"`, `cellpadding="0"`, `class="sortable"`)
 	hw.TheadOpen()
-	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions", "Code")
+	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions")
+	hw.ThOpen(`style="text-align:left"`)
+	hw.Html("Code")
+	hw.ThClose()
 	hw.TheadClose()
 
 	if !fileExists(file) {
@@ -876,7 +879,10 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 	attrs = append(attrs, tableAttrs...)
 	hw.TableOpen(attrs...)
 	hw.TheadOpen()
-	hw.Th("Calls", "Places", "Files", "Self (ms)", "Inclusive (ms)", "Incl/Excl %%", "Function")
+	hw.Th("Calls", "Places", "Files", "Self (ms)", "Inclusive (ms)", "Incl/Excl %%")
+	hw.ThOpen(`style="text-align:left"`)
+	hw.Html("Function")
+	hw.ThClose()
 	hw.TheadClose()
 	hw.TbodyOpen()
 	for _, fc := range functionCalls {
