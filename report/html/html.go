@@ -425,18 +425,15 @@ func (r *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *json.LineProfile, inden
 	}
 }
 
-func (r *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *json.LineProfile, scanner *bufio.Scanner, ownTimeStats, otherTimeStats *stats.Stats) {
-	hasSourceLine := false
-	sourceLine := ""
+func (r *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *json.LineProfile, sourceLine *string, ownTimeStats, otherTimeStats *stats.Stats) {
 	indent := ""
 	hw.TrOpen()
 	hw.TdOpen()
 	hw.Html(fmt.Sprintf(`<a id="%d">%d</a>`, lineNo, lineNo))
 	hw.TdCloseNoIndent()
-	if scanner.Scan() {
-		hasSourceLine = true
-		sourceLine = scanner.Text()
-		indent = getFirstWhiteSpaces(sourceLine)
+
+	if sourceLine != nil {
+		indent = getFirstWhiteSpaces(*sourceLine)
 	}
 
 	if lp == nil {
@@ -468,8 +465,8 @@ func (r *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *js
 		}
 	}
 
-	if hasSourceLine {
-		hw.Html(html.EscapeString(sourceLine))
+	if sourceLine != nil {
+		hw.Html(html.EscapeString(*sourceLine))
 		r.showCallsMade(hw, lp, indent)
 	}
 	hw.TdCloseNoIndent()
@@ -547,10 +544,16 @@ func (r *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfiles json
 	otherTimeStats := stats.MadMedian(timesInFunction)
 
 	hw.TbodyOpen()
+
+	var sourceLine *string
 	for i, lp := range lineProfiles {
 		lineNo := i + 1
-		// TODO refactor: don't pass scanner, pass the line
-		r.writeOneSourceCodeLine(hw, lineNo, lp, scanner, ownTimeStats, otherTimeStats)
+		sourceLine = nil
+		if scanner.Scan() {
+			line := scanner.Text()
+			sourceLine = &line
+		}
+		r.writeOneSourceCodeLine(hw, lineNo, lp, sourceLine, ownTimeStats, otherTimeStats)
 	}
 	hw.TbodyClose()
 	hw.TableClose()
