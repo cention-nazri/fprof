@@ -72,9 +72,7 @@ func reportFromJson() {
 	}
 	profile := json.From(in)
 
-	var reporter report.Reporter
-	reporter = html.New(reportDir)
-	reporter.ReportFunctions(profile)
+	html.New(reportDir).ReportFunctions(profile)
 }
 
 func generateMetricFiles(profileFor report.LineMetricForFiles) {
