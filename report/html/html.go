@@ -407,11 +407,16 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *json.LineProfile
 
 			calleeFQN := c.To.FullName()
 			calleeFile, calleeAt := c.To.Filename, c.To.StartLine-1
-			calleeFile = reporter.htmlLineFilename(calleeFile)
+
+			link := calleeFQN
+			if path.IsAbs(calleeFile) {
+				calleeFile = reporter.htmlLineFilename(calleeFile)
+				link = htmlLink(reporter.htmlLineFilename(hw.SourceFile), calleeFQN, calleeFile, calleeAt)
+			}
 			hw.commentln(indent, "Spent %vms %s %s()%s",
 				c.TimeInFunctions.InMillisecondsStr(),
 				callTxt,
-				htmlLink(reporter.htmlLineFilename(hw.SourceFile), calleeFQN, calleeFile, calleeAt),
+				link,
 				avgTxt)
 		}
 		if startHideAt > 0 {
