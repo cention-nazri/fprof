@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -12,12 +11,10 @@ import (
 
 import "fprof/helper"
 import "fprof/report"
-import "fprof/report/text"
 import "fprof/report/html"
 import "fprof/jsonprofile"
 
 var reportDir = "fprof"
-var reportType = "txt"
 var runBrowser = true
 var browser = "google-chrome"
 var jsonfile = "-"
@@ -27,7 +24,6 @@ func main() {
 	var pBrowser = flag.String("b", browser, "Use the given browser to open the profiling results")
 
 	var pReportDir = flag.String("o", reportDir, "Directory to generate profile reports")
-	var pReportType = flag.String("t", reportType, "Report type txt or html (default)")
 	flag.Parse()
 
 	if *pNoBrowser {
@@ -35,9 +31,6 @@ func main() {
 	}
 	if *pReportDir != reportDir {
 		reportDir = *pReportDir
-	}
-	if *pReportType != reportType {
-		reportType = *pReportType
 	}
 	if *pBrowser != browser {
 		browser = *pBrowser
@@ -82,32 +75,6 @@ func reportFromJson() {
 	var reporter report.Reporter
 	reporter = html.New(reportDir)
 	reporter.ReportFunctions(profile)
-}
-
-func reportFromTxt() {
-	profileFor := make(report.LineMetricForFiles)
-
-	scanner := bufio.NewScanner(os.Stdin)
-	header := ""
-	var reporter report.Reporter
-	if reportType == "txt" {
-		reporter = text.New(reportDir)
-	} else {
-		reporter = html.New(reportDir)
-	}
-
-	if scanner.Scan() {
-		header = scanner.Text()
-		reporter.Prolog(header)
-	}
-	for scanner.Scan() {
-		reporter.PopulateProfile(profileFor, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		log.Fatal("reading standard input:", err)
-	}
-	generateMetricFiles(profileFor)
-	reporter.Epilog()
 }
 
 func generateMetricFiles(profileFor report.LineMetricForFiles) {
