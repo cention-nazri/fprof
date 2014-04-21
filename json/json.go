@@ -1,4 +1,4 @@
-package jsonprofile
+package json
 
 import (
 	"fmt"

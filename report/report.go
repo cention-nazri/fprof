@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-import "fprof/jsonprofile"
+import "fprof/json"
 
 const FilesDir = "files"
 
@@ -23,7 +23,7 @@ type Reporter interface {
 	PrintMetrics(filesDir string, timings LineMetric, filenameAndLine string)
 	Prolog(header string)
 	PopulateProfile(profileFor LineMetricForFiles, record string)
-	ReportFunctions(*jsonprofile.Profile)
+	ReportFunctions(*json.Profile)
 	Epilog()
 }
 

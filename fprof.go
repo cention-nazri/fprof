@@ -12,7 +12,7 @@ import (
 import "fprof/helper"
 import "fprof/report"
 import "fprof/report/html"
-import "fprof/jsonprofile"
+import "fprof/json"
 
 var reportDir = "fprof"
 var runBrowser = true
@@ -70,7 +70,7 @@ func reportFromJson() {
 			log.Fatal(err)
 		}
 	}
-	profile := jsonprofile.From(in)
+	profile := json.From(in)
 
 	var reporter report.Reporter
 	reporter = html.New(reportDir)

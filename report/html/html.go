@@ -17,7 +17,7 @@ import (
 import "fprof/report"
 import "fprof/helper"
 import "fprof/stats"
-import "fprof/jsonprofile"
+import "fprof/json"
 
 var SEVERITY_LOW = .5
 var SEVERITY_MEDIUM = 1.0
@@ -252,7 +252,7 @@ func isEval(f string) bool {
 	return false
 }
 
-func htmlLink(fromFile, funcName, toFile string, lineNo jsonprofile.Counter) string {
+func htmlLink(fromFile, funcName, toFile string, lineNo json.Counter) string {
 	if isEval(toFile) {
 		return `<span title="Called from eval()"><i>` + funcName + `</i></span>`
 	}
@@ -313,7 +313,7 @@ func getRelativePathTo(to, from string) string {
 	return r
 }
 
-func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.FunctionProfile, indent string) {
+func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *json.FunctionProfile, indent string) {
 	hideThreshold := 10
 	//nCallers := len(fp.Callers)
 	//if nCallers == 0 {
@@ -378,7 +378,7 @@ func (reporter *HtmlReporter) showCallers(hw *HtmlWriter, fp *jsonprofile.Functi
 	//}
 }
 
-func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.LineProfile, indent string) {
+func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *json.LineProfile, indent string) {
 	/* Time spent calling functions */
 	/* FIXME populate function call metric from lp.Function.Callers */
 	var callTxt string
@@ -420,7 +420,7 @@ func (reporter *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *jsonprofile.Line
 	}
 }
 
-func (reporter *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *jsonprofile.LineProfile, scanner *bufio.Scanner, ownTimeStats, otherTimeStats *stats.Stats) {
+func (reporter *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *json.LineProfile, scanner *bufio.Scanner, ownTimeStats, otherTimeStats *stats.Stats) {
 	hasSourceLine := false
 	sourceLine := ""
 	indent := ""
@@ -471,8 +471,8 @@ func (reporter *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int,
 	hw.TrClose()
 }
 
-func makeEmptyLineProfiles(file string) []*jsonprofile.LineProfile {
-	return make([]*jsonprofile.LineProfile, helper.GetLineCount(file))
+func makeEmptyLineProfiles(file string) []*json.LineProfile {
+	return make([]*json.LineProfile, helper.GetLineCount(file))
 }
 
 func fileExists(file string) bool {
@@ -482,7 +482,7 @@ func fileExists(file string) bool {
 	return true
 }
 
-func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfiles jsonprofile.FileProfile, rootJsFiles []string, done chan bool) {
+func (reporter *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfiles json.FileProfile, rootJsFiles []string, done chan bool) {
 	htmlfile := reporter.ReportDir + "/" + reporter.htmlLineFilename(file)
 	helper.CreateDir(path.Dir(htmlfile))
 	hw := NewHtmlWriter(file, htmlfile)
@@ -675,7 +675,7 @@ table.sortable thead tr .headerSortDown { background-image: url(data:image/png;b
 `)
 }
 
-func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string]bool, fileProfiles jsonprofile.FileProfile, jsFiles []string, nWorkers int) {
+func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string]bool, fileProfiles json.FileProfile, jsFiles []string, nWorkers int) {
 	nFiles := 0
 	for _, exist := range exists {
 		if exist {
@@ -686,7 +686,7 @@ func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string
 	type Job struct {
 		file string
 		// TODO use lineprofiles instead
-		fileProfiles jsonprofile.FileProfile
+		fileProfiles json.FileProfile
 	}
 
 	tasks := make(chan *Job, nFiles)
@@ -723,7 +723,7 @@ func (reporter *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string
 	fmt.Println("")
 }
 
-func (reporter *HtmlReporter) GenerateSourceCodeHtmlFiles(fileProfiles jsonprofile.FileProfile, jsFiles []string) map[string]bool {
+func (reporter *HtmlReporter) GenerateSourceCodeHtmlFiles(fileProfiles json.FileProfile, jsFiles []string) map[string]bool {
 	exists := make(map[string]bool)
 	for file, lineProfiles := range fileProfiles {
 		exists[file] = fileExists(file)
@@ -787,7 +787,7 @@ func getSeverityClass(v float64, stat *stats.Stats) string {
 	return "s_bad"
 }
 
-func getMADStats(functionCalls jsonprofile.FunctionProfileSlice) (*stats.Stats, *stats.Stats) {
+func getMADStats(functionCalls json.FunctionProfileSlice) (*stats.Stats, *stats.Stats) {
 	ownTimes := make([]float64, 0, len(functionCalls))
 	incTimes := make([]float64, 0, len(functionCalls))
 	for _, fc := range functionCalls {
@@ -809,7 +809,7 @@ func getMADStats(functionCalls jsonprofile.FunctionProfileSlice) (*stats.Stats, 
 	return ownTimeStat, incTimeStat
 }
 
-func (reporter *HtmlReporter) writeOneFunctionMetric(hw *HtmlWriter, fc *jsonprofile.FunctionProfile, exists map[string]bool, ownTimeStat *stats.Stats, incTimeStat *stats.Stats) {
+func (reporter *HtmlReporter) writeOneFunctionMetric(hw *HtmlWriter, fc *json.FunctionProfile, exists map[string]bool, ownTimeStat *stats.Stats, incTimeStat *stats.Stats) {
 	ieRatio := ""
 	inclMS := fc.InclusiveDuration.InMilliseconds()
 	exclMS := fc.OwnTime.InMilliseconds()
@@ -868,7 +868,7 @@ func writeSeverityLegend(hw *HtmlWriter) {
 	hw.DivClose()
 }
 
-func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, jsFiles []string, exists map[string]bool, functionCalls jsonprofile.FunctionProfileSlice) {
+func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *json.Profile, jsFiles []string, exists map[string]bool, functionCalls json.FunctionProfileSlice) {
 	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
 	defer hw.writeToDiskAsync(nil)
 
@@ -903,7 +903,7 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 	hw.HtmlClose()
 }
 
-func (reporter *HtmlReporter) ReportFunctions(p *jsonprofile.Profile) {
+func (reporter *HtmlReporter) ReportFunctions(p *json.Profile) {
 	fileProfiles := p.FileProfileMap
 	reporter.GenerateCssFile()
 	reporter.GenerateJsFiles()
