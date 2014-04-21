@@ -164,7 +164,7 @@ func (hw *HtmlWriter) TbodyOpen()                { hw.beginln("tbody") }
 func (hw *HtmlWriter) TbodyClose()               { hw.end("tbody") }
 func (hw *HtmlWriter) TrOpen()                   { hw.beginln("tr") }
 func (hw *HtmlWriter) TrClose()                  { hw.end("tr") }
-func (hw *HtmlWriter) ThOpen()                   { hw.beginln("th") }
+func (hw *HtmlWriter) ThOpen(attrs ...string)    { hw.beginln("th", attrs...) }
 func (hw *HtmlWriter) ThClose()                  { hw.end("th") }
 func (hw *HtmlWriter) TdOpen(attrs ...string)    { hw.begin("td", attrs...) }
 func (hw *HtmlWriter) TdClose()                  { hw.end("td") }
@@ -601,6 +601,10 @@ func (reporter *HtmlReporter) GenerateCssFile() {
 	fmt.Fprint(css, `body {
 	font-family: sans-serif;
 }
+div.legend {
+	float: right;
+	margin-bottom: 0.5em;
+}
 table {
 	border-spacing: 0;
 	border-collapse: collapse;
@@ -831,6 +835,30 @@ func (reporter *HtmlReporter) writeOneFunctionMetric(hw *HtmlWriter, fc *jsonpro
 	hw.TrClose()
 }
 
+var tableAttrs = []string{`border="1"`, `cellpadding="0"`}
+
+func writeSeverityLegend(hw *HtmlWriter) {
+	legend := []map[string]string{
+		{"s_bad": "Bad"},
+		{"s_high": "High"},
+		{"s_medium": "Medium"},
+		{"s_low": "Low"},
+	}
+	hw.DivOpen(`class="legend"`)
+	hw.Html("Severity:")
+	hw.TableOpen(tableAttrs...)
+	for _, u := range legend {
+		hw.TrOpen()
+		for k, v := range u {
+			hw.TdWithClassOrEmpty(k, " ")
+			hw.Td(v)
+		}
+		hw.TrClose()
+	}
+	hw.TableClose()
+	hw.DivClose()
+}
+
 func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, jsFiles []string, exists map[string]bool, functionCalls jsonprofile.FunctionProfileSlice) {
 	hw := NewHtmlWriter("", reporter.ReportDir+"/functions.html")
 	defer hw.writeToDiskAsync(nil)
@@ -838,10 +866,15 @@ func (reporter *HtmlReporter) GenerateFunctionsHtmlFile(p *jsonprofile.Profile, 
 	ownTimeStat, incTimeStat := getMADStats(functionCalls)
 
 	hw.HtmlWithCssBodyOpen("css/style.css", jsFiles)
+	hw.DivOpen(`style="float:left"`)
 	hw.Div("Start: " + p.Start.Time())
 	hw.Div("Stop: " + p.Stop.Time())
 	hw.Div("Duration: " + p.Duration.InMillisecondsStr() + "ms")
-	hw.TableOpen(`border="1"`, `cellpadding="0"`, `id="functions_table"`, `class="sortable"`)
+	hw.DivClose()
+	writeSeverityLegend(hw)
+	attrs := []string{`id="functions_table"`, `class="sortable"`}
+	attrs = append(attrs, tableAttrs...)
+	hw.TableOpen(attrs...)
 	hw.TheadOpen()
 	hw.Th("Calls", "Places", "Files", "Self (ms)", "Inclusive (ms)", "Incl/Excl %%", "Function")
 	hw.TheadClose()
