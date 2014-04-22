@@ -500,7 +500,7 @@ func (r *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfiles json
 	hw.Html(file)
 	hw.DivClose()
 	writeSeverityLegend(hw)
-	hw.TableOpen(`id="function_table"`, `border="1"`, `cellpadding="0"`, `class="sortable"`)
+	hw.TableOpen(`id="function_table"`, `border="1"`, `cellpadding="0"`, `class="sortable clear"`)
 	hw.TheadOpen()
 	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions")
 	hw.ThOpen(`style="text-align:left"`)
@@ -614,6 +614,9 @@ func (r *HtmlReporter) GenerateCssFile() {
 	css := osutil.CreateFile(cssFile)
 	fmt.Fprint(css, `body {
 	font-family: sans-serif;
+}
+.clear {
+	clear: both;
 }
 .left {
 	float: left;
@@ -889,7 +892,7 @@ func (r *HtmlReporter) GenerateFunctionsHtmlFile(p *json.Profile, jsFiles []stri
 	hw.Div("Duration: " + p.Duration.InMillisecondsStr() + "ms")
 	hw.DivClose()
 	writeSeverityLegend(hw)
-	attrs := []string{`id="functions_table"`, `class="sortable"`}
+	attrs := []string{`id="functions_table"`, `class="sortable clear"`}
 	attrs = append(attrs, tableAttrs...)
 	hw.TableOpen(attrs...)
 	hw.TheadOpen()
