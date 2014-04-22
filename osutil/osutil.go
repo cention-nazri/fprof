@@ -3,8 +3,8 @@ package osutil
 import (
 	"bufio"
 	"fmt"
+	"fprof/log"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path"

@@ -2,8 +2,8 @@ package json
 
 import (
 	"fmt"
+	"fprof/log"
 	"io"
-	"log"
 	"sort"
 	"time"
 )

@@ -3,7 +3,7 @@ package json
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"fprof/log"
 	"reflect"
 	"testing"
 )

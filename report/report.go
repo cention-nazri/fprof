@@ -1,8 +1,8 @@
 package report
 
 import (
+	"fprof/log"
 	"io"
-	"log"
 	"strconv"
 	"strings"
 )

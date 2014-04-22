@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"fprof/log"
 	"html"
 	"io"
-	"log"
 	"os"
 	"path"
 	"sort"
@@ -728,7 +728,7 @@ func (r *HtmlReporter) generateHtmlFilesParallerWorkers(exists map[string]bool, 
 		percent := i * 100 / nFiles
 		fmt.Printf("%3d%%\r", percent)
 	}
-	fmt.Println("")
+	fmt.Printf("")
 }
 
 func (r *HtmlReporter) GenerateSourceCodeHtmlFiles(fileProfiles json.FileProfile, jsFiles []string) map[string]bool {
