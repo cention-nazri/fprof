@@ -22,24 +22,28 @@ func TestPathToRoot(t *testing.T) {
 	testPathToRoot(t, "file.txt", "")
 }
 
-func testGetRelativePathTo(t *testing.T, to, from, expected string) {
-	got := getRelativePathTo(to, from)
-	if got != expected {
-		t.Fail()
-		t.Logf(`getRelativePathTo("%s", "%s")`, to, from)
-		t.Logf("expected: [%s]", expected)
-		t.Logf("     got: [%s]", got)
-	}
+var relativePathTests = []struct {
+	to, from string
+	want     string
+}{
+	{"a.txt", ".", "a.txt"},
+	{"a.txt", "a.txt", ""},
+	{"//a.txt", "/a.txt", ""},
+	{"a.txt", "b.txt", "a.txt"},
+	{"a/a.txt", "b/b.txt", "../a/a.txt"},
+	{"a/a.txt", ".", "a/a.txt"},
+	{"files/a/elephant/foo.html", "files/a/b/c/file.html", "../../elephant/foo.html"},
+	{"files//home/foo/baz.html", "files/Obj.constructor.html", "home/foo/baz.html"},
 }
+
 func TestGetRelativePathTo(t *testing.T) {
-	testGetRelativePathTo(t, "a.txt", ".", "a.txt")
-	testGetRelativePathTo(t, "a.txt", "a.txt", "")
-	testGetRelativePathTo(t, "//a.txt", "/a.txt", "")
-	testGetRelativePathTo(t, "a.txt", "b.txt", "a.txt")
-	testGetRelativePathTo(t, "a/a.txt", "b/b.txt", "../a/a.txt")
-	testGetRelativePathTo(t, "a/a.txt", ".", "a/a.txt")
-	testGetRelativePathTo(t, "files/a/elephant/foo.html", "files/a/b/c/file.html", "../../elephant/foo.html")
-	testGetRelativePathTo(t, "files//home/foo/baz.html", "files/Obj.constructor.html", "home/foo/baz.html")
+	for i, tt := range relativePathTests {
+		got := getRelativePathTo(tt.to, tt.from)
+		if got != tt.want {
+			t.Errorf("%d. getRelativePathTo(%q, %q)\n Got %q\nwant %q", i, tt.to, tt.from, got, tt.want)
+		}
+
+	}
 }
 
 func testStripCommonPath(t *testing.T, path1, path2, e1, e2 string) {
