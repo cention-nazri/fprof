@@ -8,7 +8,10 @@ import (
 	"time"
 )
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+)
 
 const ONE_BILLION = 1000000000
 const ONE_MILLION = 1000000
@@ -201,21 +204,19 @@ func DecodeFromBytes(b []byte) *Profile {
 	return &o
 }
 
-func From(stream io.Reader) *Profile {
+func From(stream io.Reader) (*Profile, error) {
 	var o Profile
 
 	r := json.NewDecoder(stream)
 	if r == nil {
-		log.Print("Error creating decoder from stream")
-		return nil
+		return nil, errors.New("Error creating decoder from stream")
 	}
 
 	err := r.Decode(&o)
 	if err != nil {
-		log.Print(err)
-		return nil
+		return nil, err
 	}
-	return &o
+	return &o, nil
 
 }
 

@@ -3,16 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
-	"fprof/log"
 	"io"
 	"os"
 	"path"
-)
 
-import "fprof/osutil"
-import "fprof/report"
-import "fprof/report/html"
-import "fprof/json"
+	"fprof/json"
+	"fprof/log"
+	"fprof/osutil"
+	"fprof/report"
+	"fprof/report/html"
+)
 
 var defaultReportDir = "<file.json>.d"
 var reportDir = defaultReportDir
@@ -96,7 +96,10 @@ func reportFromJson() {
 			log.Fatal(err)
 		}
 	}
-	profile := json.From(in)
+	profile, err := json.From(in)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	html.New(reportDir).ReportFunctions(profile)
 }

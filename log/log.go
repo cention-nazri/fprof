@@ -9,6 +9,7 @@ var logger *log.Logger
 
 func Init(w io.Writer, prefix string) {
 	logger = log.New(w, prefix, log.LstdFlags)
+	log.SetPrefix(prefix)
 }
 
 func Print(v interface{}) {
@@ -24,5 +25,5 @@ func Println(v ...interface{}) {
 }
 
 func Fatal(v ...interface{}) {
-	logger.Fatal(v...)
+	log.Fatal(v...)
 }
