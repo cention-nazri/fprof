@@ -199,44 +199,6 @@ func New(reportDir string) *HtmlReporter {
 func (r *HtmlReporter) GetPathTo(file string) string {
 	return r.ReportDir + "/" + file
 }
-func (r *HtmlReporter) Prolog(header string) {
-	fmt.Fprint(r.ProfileFile, "<table><tr>")
-	for _, head := range strings.Fields(header) {
-		fmt.Fprintf(r.ProfileFile, "<th>%v</th>", head)
-	}
-	fmt.Fprintln(r.ProfileFile, "<th></th></tr>")
-}
-
-func (r *HtmlReporter) PrintMetrics(filesDir string, timings report.LineMetric, filenameAndLine string) {
-	fmt.Fprint(r.ProfileFile, "<tr>")
-	nPrinted := 0
-	for _, metric := range strings.Fields(string(timings)) {
-		fmt.Fprintf(r.ProfileFile, "<td>%v</td>", metric)
-		nPrinted++
-	}
-	for i := nPrinted; i < 5; i++ {
-		fmt.Fprint(r.ProfileFile, "<td></td>")
-	}
-	fmt.Fprintf(r.ProfileFile, "<td>%v%v</td></tr>\n", filesDir, filenameAndLine)
-}
-
-func (r *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFiles, record string) {
-	timings, filenameAndLine := report.TimingsAndFilenameLineInfo(record)
-	filename, line := report.GetFilenameAndLineNumber(filenameAndLine)
-
-	lineMetrics, exists := profileFor[filename]
-	if exists {
-		if cap(lineMetrics) < line {
-			log.Fatal(line, " is more than line count for file", filename, cap(lineMetrics))
-		}
-	} else {
-		lineCount := osutil.CountLine(filename)
-		lineMetrics = make([]report.LineMetric, lineCount+1)
-		profileFor[filename] = lineMetrics
-	}
-	profileFor[filename][line-1] = timings
-	r.PrintMetrics(report.FilesDir, timings, filenameAndLine)
-}
 
 func (r *HtmlReporter) htmlLineFilename(file string) string {
 	return report.FilesDir + "/" + file + ".html"
@@ -932,8 +894,4 @@ func (r *HtmlReporter) ReportFunctions(p *json.Profile) {
 	exists := r.GenerateSourceCodeHtmlFiles(fileProfiles, jsFiles)
 	jsFiles[4] = "js/functions.js"
 	r.GenerateFunctionsHtmlFile(p, jsFiles, exists, functionCalls)
-}
-
-func (r *HtmlReporter) Epilog() {
-	fmt.Fprintln(r.ProfileFile, "</table>")
 }

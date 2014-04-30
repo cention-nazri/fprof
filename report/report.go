@@ -20,11 +20,7 @@ type Report struct {
 }
 
 type Reporter interface {
-	PrintMetrics(filesDir string, timings LineMetric, filenameAndLine string)
-	Prolog(header string)
-	PopulateProfile(profileFor LineMetricForFiles, record string)
 	ReportFunctions(*json.Profile)
-	Epilog()
 }
 
 func GetFilenameAndLineNumber(filenameAndLine string) (string, int) {
