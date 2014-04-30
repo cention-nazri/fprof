@@ -230,7 +230,7 @@ func (r *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFiles, rec
 			log.Fatal(line, " is more than line count for file", filename, cap(lineMetrics))
 		}
 	} else {
-		lineCount := osutil.GetLineCount(filename)
+		lineCount := osutil.CountLine(filename)
 		lineMetrics = make([]report.LineMetric, lineCount+1)
 		profileFor[filename] = lineMetrics
 	}
@@ -474,7 +474,7 @@ func (r *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *js
 }
 
 func makeEmptyLineProfiles(file string) []*json.LineProfile {
-	return make([]*json.LineProfile, osutil.GetLineCount(file))
+	return make([]*json.LineProfile, osutil.CountLine(file))
 }
 
 func fileExists(file string) bool {
