@@ -196,7 +196,7 @@ func New(reportDir string) *HtmlReporter {
 	return &r
 }
 
-func (r *HtmlReporter) GetPathTo(file string) string {
+func (r *HtmlReporter) PathTo(file string) string {
 	return r.ReportDir + "/" + file
 }
 
@@ -557,7 +557,7 @@ function toggleHide(e) {
 	$("#function_table").tablesorter();
 });`
 
-	d := r.GetPathTo("js")
+	d := r.PathTo("js")
 	jsFiles := map[string]string{
 		path.Join(d, "jquery-min.js"):             JQuery,
 		path.Join(d, "jquery-tablesorter-min.js"): JQueryTableSorter,
