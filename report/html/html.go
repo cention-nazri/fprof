@@ -277,16 +277,6 @@ func getRelativePathTo(to, from string) string {
 
 func (r *HtmlReporter) showCallers(hw *HtmlWriter, fp *json.FunctionProfile, indent string) {
 	hideThreshold := 10
-	//nCallers := len(fp.Callers)
-	//if nCallers == 0 {
-	//	avgStr := ""
-	//	freqStr := "once"
-	//	if fp.Hits > 1 {
-	//		freqStr = fmt.Sprintf("%d times", fp.Hits)
-	//		avgStr = fmt.Sprintf(", avg %vms/call", fp.InclusiveDuration.AverageInMilliseconds(fp.Hits))
-	//	}
-	//	hw.comment(indent, "Spent %vms within %v() which was called %s (caller data not available)%s", fp.InclusiveDuration.InMillisecondsStr(), fp.FullName(), freqStr, avgStr)
-	//} else {
 
 	freqStr := ":"
 	nCalls := fp.Callers.Total()
@@ -337,7 +327,6 @@ func (r *HtmlReporter) showCallers(hw *HtmlWriter, fp *json.FunctionProfile, ind
 	if startHideAt > 0 {
 		hw.Html(`</div>`)
 	}
-	//}
 }
 
 func (r *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *json.LineProfile, indent string) {

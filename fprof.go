@@ -65,8 +65,6 @@ func main() {
 	if runBrowser {
 		openInBrowser(reportDir + "/functions.html")
 	}
-
-	//reportFromTxt()
 }
 
 func initLogger(verbose bool) {
