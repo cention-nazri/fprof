@@ -221,7 +221,7 @@ func (r *HtmlReporter) PrintMetrics(filesDir string, timings report.LineMetric, 
 }
 
 func (r *HtmlReporter) PopulateProfile(profileFor report.LineMetricForFiles, record string) {
-	timings, filenameAndLine := report.GetTimingsAndFilenameLineInfo(record)
+	timings, filenameAndLine := report.TimingsAndFilenameLineInfo(record)
 	filename, line := report.GetFilenameAndLineNumber(filenameAndLine)
 
 	lineMetrics, exists := profileFor[filename]

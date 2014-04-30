@@ -37,7 +37,7 @@ func GetFilenameAndLineNumber(filenameAndLine string) (string, int) {
 	return filename, line
 }
 
-func GetTimingsAndFilenameLineInfo(record string) (LineMetric, string) {
+func TimingsAndFilenameLineInfo(record string) (LineMetric, string) {
 	firstSlash := strings.Index(record, "/")
 	if firstSlash == -1 {
 		log.Fatal("Error no slash found in profile record ", record)
