@@ -55,7 +55,7 @@ func (hw *HtmlWriter) HiderLink(indent string, nHidden int) {
 
 func (hw *HtmlWriter) writeToDiskAsync(done chan bool) {
 	work := func() {
-		fmt.Fprintf(hw.realw, hw.w.String())
+		fmt.Fprint(hw.realw, hw.w.String())
 	}
 	if done == nil {
 		work()
