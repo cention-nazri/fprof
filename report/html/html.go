@@ -168,19 +168,31 @@ func (hw *HtmlWriter) ThOpen(attrs ...string)    { hw.beginln("th", attrs...) }
 func (hw *HtmlWriter) ThClose()                  { hw.end("th") }
 func (hw *HtmlWriter) TdOpen(attrs ...string)    { hw.begin("td", attrs...) }
 func (hw *HtmlWriter) TdClose()                  { hw.end("td") }
+func (hw *HtmlWriter) TdTitled(title string, content interface{}) {
+	hw.begin("td", `title="`+title+`"`)
+	hw.write(content)
+	hw.TdCloseNoIndent()
+}
 func (hw *HtmlWriter) TdCloseNoIndent() {
 	hw.Html("</td>\n")
 	hw.indent--
 }
-func (hw *HtmlWriter) TdWithClassOrEmpty(class string, content string) {
+func (hw *HtmlWriter) TdTitledWithClassOrEmpty(title, class, content string) {
 	if len(content) == 0 {
 		hw.Td("")
 		return
 	}
 
-	hw.TdOpen(`class="` + class + `"`)
+	if len(title) > 0 {
+		hw.TdOpen(`class="`+class+`"`, `title="`+title+`"`)
+	} else {
+		hw.TdOpen(`class="` + class + `"`)
+	}
 	hw.write(content)
 	hw.TdCloseNoIndent()
+}
+func (hw *HtmlWriter) TdWithClassOrEmpty(class, content string) {
+	hw.TdTitledWithClassOrEmpty("", class, content)
 }
 func (hw *HtmlWriter) DivOpen(attrs ...string) { hw.begin("div", attrs...) }
 func (hw *HtmlWriter) DivClose()               { hw.end("div") }
@@ -376,10 +388,26 @@ func (r *HtmlReporter) showCallsMade(hw *HtmlWriter, lp *json.LineProfile, inden
 	}
 }
 
+type CodeTableHeader struct {
+	line            string
+	hits            string
+	timeOnLine      string
+	callsMade       string
+	timeInFunctions string
+}
+
+var cth = CodeTableHeader{
+	line:            "Line",
+	hits:            "Hits",
+	timeOnLine:      "Time on line (ms)",
+	callsMade:       "Calls Made",
+	timeInFunctions: "Time in functions",
+}
+
 func (r *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *json.LineProfile, sourceLine *string, ownTimeStats, otherTimeStats *stats.Stats) {
 	indent := ""
 	hw.TrOpen()
-	hw.TdOpen()
+	hw.TdOpen(`title="Line number"`)
 	hw.Html(fmt.Sprintf(`<a id="%d">%d</a>`, lineNo, lineNo))
 	hw.TdCloseNoIndent()
 
@@ -388,24 +416,28 @@ func (r *HtmlReporter) writeOneSourceCodeLine(hw *HtmlWriter, lineNo int, lp *js
 	}
 
 	if lp == nil {
-		hw.Td("", "", "", "")
+		hw.TdTitled(cth.hits, "")
+		hw.TdTitled(cth.timeOnLine, "")
+		hw.TdTitled(cth.callsMade, "")
+		hw.TdTitled(cth.timeInFunctions, "")
 		hw.TdOpen(`class="s"`)
 	} else {
 		ownTime := lp.TotalDuration
 		ownTime.Subtract(lp.TimeInFunctions)
 		if lp.Hits > 0 {
-			hw.Td(lp.Hits)
+			hw.TdTitled(cth.hits, lp.Hits)
 		} else {
-			hw.Td("")
+			hw.TdTitled(cth.hits, "")
 		}
 
-		hw.TdWithClassOrEmpty(
+		hw.TdTitledWithClassOrEmpty(
+			cth.timeOnLine,
 			getSeverityClass(ownTime.InMilliseconds(), ownTimeStats),
 			ownTime.NonZeroMsOrNone(),
 		)
 
-		hw.Td(lp.CallsMade.EmptyIfZero())
-		hw.TdWithClassOrEmpty(getSeverityClass(lp.TimeInFunctions.InMilliseconds(), otherTimeStats), lp.TimeInFunctions.NonZeroMsOrNone())
+		hw.TdTitled(cth.callsMade, lp.CallsMade.EmptyIfZero())
+		hw.TdTitledWithClassOrEmpty(cth.timeInFunctions, getSeverityClass(lp.TimeInFunctions.InMilliseconds(), otherTimeStats), lp.TimeInFunctions.NonZeroMsOrNone())
 
 		hw.TdOpen(`class="s"`)
 		if lp.Functions != nil {
@@ -453,7 +485,7 @@ func (r *HtmlReporter) writeOneSourceCodeHtmlFile(file string, fileProfiles json
 	writeSeverityLegend(hw)
 	hw.TableOpen(`id="function_table"`, `border="1"`, `cellpadding="0"`, `class="sortable clear"`)
 	hw.TheadOpen()
-	hw.Th("Line", "Hits", "Time on line (ms)", "Calls Made", "Time in functions")
+	hw.Th(cth.line, cth.hits, cth.timeOnLine, cth.callsMade, cth.timeInFunctions)
 	hw.ThOpen(`style="text-align:left"`)
 	hw.Html("Code")
 	hw.ThClose()
@@ -779,21 +811,23 @@ func (r *HtmlReporter) writeOneFunctionMetric(hw *HtmlWriter, fc *json.FunctionP
 		ieRatio = fmt.Sprintf("%3.1f", exclMS*100/inclMS)
 	}
 	hw.TrOpen()
-	hw.Td(fc.Hits,
-		fc.CountCallingPlaces(),
-		fc.CountCallingFiles())
+	hw.TdTitled(fth.calls, fc.Hits)
+	hw.TdTitled(fth.places, fc.CountCallingPlaces())
+	hw.TdTitled(fth.files, fc.CountCallingFiles())
 
-	hw.TdWithClassOrEmpty(
+	hw.TdTitledWithClassOrEmpty(
+		fth.selfMs,
 		getSeverityClass(exclMS, ownTimeStat),
 		fc.OwnTime.NonZeroMsOrNone(),
 	)
 
-	hw.TdWithClassOrEmpty(
+	hw.TdTitledWithClassOrEmpty(
+		fth.inclusiveMs,
 		getSeverityClass(inclMS, incTimeStat),
 		fc.InclusiveDuration.NonZeroMsOrNone(),
 	)
 
-	hw.Td(ieRatio)
+	hw.TdTitled(fth.ratio, ieRatio)
 
 	hw.TdOpen(`class="s"`)
 	if exists[fc.Filename] {
@@ -830,6 +864,24 @@ func writeSeverityLegend(hw *HtmlWriter) {
 	hw.DivClose()
 }
 
+type FunctionTableHeader struct {
+	calls       string
+	places      string
+	files       string
+	selfMs      string
+	inclusiveMs string
+	ratio       string
+}
+
+var fth = FunctionTableHeader{
+	calls:       "Calls",
+	places:      "Places",
+	files:       "Files",
+	selfMs:      "Self (ms)",
+	inclusiveMs: "Inclusive (ms)",
+	ratio:       "Incl/Excl %",
+}
+
 func (r *HtmlReporter) GenerateFunctionsHtmlFile(p *json.Profile, jsFiles []string, exists map[string]bool, functionCalls json.FunctionProfileSlice) {
 	hw := NewHtmlWriter("", r.ReportDir+"/functions.html")
 	defer hw.writeToDiskAsync(nil)
@@ -847,7 +899,7 @@ func (r *HtmlReporter) GenerateFunctionsHtmlFile(p *json.Profile, jsFiles []stri
 	attrs = append(attrs, tableAttrs...)
 	hw.TableOpen(attrs...)
 	hw.TheadOpen()
-	hw.Th("Calls", "Places", "Files", "Self (ms)", "Inclusive (ms)", "Incl/Excl %")
+	hw.Th(fth.calls, fth.places, fth.files, fth.selfMs, fth.inclusiveMs, fth.ratio)
 	hw.ThOpen(`style="text-align:left"`)
 	hw.Html("Function")
 	hw.ThClose()
