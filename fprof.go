@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 
 	"fprof/json"
 	"fprof/log"
@@ -78,8 +79,13 @@ func initLogger(verbose bool) {
 }
 
 func openInBrowser(htmlfile string) {
-	log.Println(browser, htmlfile)
-	err := osutil.RunCommand(browser, htmlfile)
+	url, err := filepath.Abs(htmlfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	url = "file://" + url
+	log.Println(browser, url)
+	err = osutil.RunCommand(browser, url)
 	if err != nil {
 		log.Fatal(browser, ":", err)
 	}
