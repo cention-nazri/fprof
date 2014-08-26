@@ -847,7 +847,7 @@ func (r *HtmlReporter) GenerateFunctionsHtmlFile(p *json.Profile, jsFiles []stri
 	attrs = append(attrs, tableAttrs...)
 	hw.TableOpen(attrs...)
 	hw.TheadOpen()
-	hw.Th("Calls", "Places", "Files", "Self (ms)", "Inclusive (ms)", "Incl/Excl %%")
+	hw.Th("Calls", "Places", "Files", "Self (ms)", "Inclusive (ms)", "Incl/Excl %")
 	hw.ThOpen(`style="text-align:left"`)
 	hw.Html("Function")
 	hw.ThClose()
